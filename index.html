@@ -1,17 +1,26 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>fa-builder</title>
-    <link rel="stylesheet" type="text/css" href="style.css"/>
-    <script src="built/util.js" type="module"></script>
-    <script src="built/config.js" type="module"></script>
-    <script src="built/main.js" type="module" defer></script>
-  </head>
 
-  <body>
-    <h1>fa-builder</h1>
-    <svg id="canvas" width="360" height="360">
-    </svg>
-    <button id="add-state">Add State</button>
-  </body>
+<head>
+  <title>fa-builder</title>
+  <link rel="stylesheet" type="text/css" href="style.css" />
+  <script src="built/util.js" type="module"></script>
+  <script src="built/config.js" type="module"></script>
+  <script src="built/main.js" type="module" defer></script>
+</head>
+
+<body>
+  <h1>fa-builder</h1>
+  <svg id="canvas" width="360" height="360">
+    <defs>
+      <!-- A marker to be used as an arrowhead -->
+      <marker id="arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="6" markerHeight="6"
+        orient="auto-start-reverse">
+        <path d="M 0 0 L 12 6 L 0 12 z" />
+      </marker>
+    </defs>
+  </svg>
+  <button id="add-state">Add State</button>
+</body>
+
 </html>

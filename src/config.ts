@@ -1,3 +1,4 @@
 export const stateConfig = {
-    radius: "50"
+    radius: 36,
+    innerRadius: 24
 };
