@@ -1,54 +1,89 @@
 import { createSvgElement, screenToSvgCoords } from "./util.js";
 import { stateConfig } from "./config.js";
 
-export const svg = document.querySelector("svg");
-export const button = document.getElementById("add-state");
+export const canvas = document.querySelector<SVGSVGElement>("svg#canvas");
+const button = document.querySelector<HTMLButtonElement>("button#add-state");
 
 
 const states = new Set();
 const acceptingStates = new Set();
 
-const toggleAccept = state => () => {
-    throw "error";
+type State = {
+    name: string,
+    accepting: boolean,
+    svgElem: SVGElement,
+};
+
+const toggleAccept = (state: State) => () => {
+
 };
 
 const addState = () => {
-    const state = {
-        svgElem: createSvgElement("circle"),
+    const state: State = {
+        name: "",
+        accepting: false,
+        svgElem: createSvgElement("g"),
     };
-    state.svgElem.setAttribute("cx", "100");
-    state.svgElem.setAttribute("cy", "100");
-    state.svgElem.setAttribute("r", stateConfig.radius);
+    const circle = createSvgElement("circle");
+    circle.setAttribute("r", stateConfig.radius);
+    circle.setAttribute("cx", "100");
+    circle.setAttribute("cy", "100");
+    state.svgElem.appendChild(circle);
     state.svgElem.classList.add("state");
     state.svgElem.addEventListener("dblclick", toggleAccept(state))
     states.add(state);
-    svg.appendChild(state.svgElem);
+    canvas.appendChild(state.svgElem);
 };
 
 button.addEventListener("click", addState);
 
-const startDrag = ctx => evt => {
-    if (evt.target.classList.contains("state"))
-        ctx.draggedElem = evt.target;
+type DragCtx = {
+    elem: Element,
+    init: number[],
+    trans: SVGTransform
 };
 
-const drag = ctx => evt => {
-    const elem = ctx.draggedElem;
-    if (elem !== null) {
-        const [x, y] = screenToSvgCoords(evt.x, evt.y);
-        elem.setAttribute("cx", x.toString());
-        elem.setAttribute("cy", y.toString());
-    }
-};
+type DragHandler = (ctx: DragCtx) => (evt: MouseEvent) => void;
 
-const endDrag = ctx => () => ctx.draggedElem = null;
-
-const makeDraggable = elem => {
-    const ctx = { draggedElem: null };
+const makeDraggable = (startDrag: DragHandler, drag: DragHandler,
+    endDrag: DragHandler, elem: EventTarget) => {
+    const ctx: DragCtx = {
+        elem: null,
+        init: null,
+        trans: null
+    };
     elem.addEventListener("mousedown", startDrag(ctx));
     elem.addEventListener("mousemove", drag(ctx));
     elem.addEventListener("mouseup", endDrag(ctx));
     elem.addEventListener("mouseleave", endDrag(ctx));
-}
+};
 
-makeDraggable(svg);
+const startDragState: DragHandler = ctx => evt => {
+    const elem = evt.target as Element;
+    const stateElem = elem.closest(".state") as SVGGraphicsElement;
+    if (stateElem === null)
+        return;
+    ctx.elem = stateElem;
+    ctx.init = screenToSvgCoords(evt.x, evt.y);
+    ctx.trans = canvas.createSVGTransform();
+    ctx.trans.setTranslate(0, 0);
+    stateElem.transform.baseVal.appendItem(ctx.trans);
+};
+
+const dragState: DragHandler = ctx => evt => {
+    const elem = (ctx.elem as SVGGraphicsElement);
+    if (elem === null)
+        return;
+    const [tx, ty] = screenToSvgCoords(evt.x, evt.y).map((c, i) => c - ctx.init[i]);
+    ctx.trans.setTranslate(tx, ty);
+};
+
+const endDragState: DragHandler = ctx => () => {
+    const elem = ctx.elem as SVGGraphicsElement;
+    if (elem === null)
+        return;
+    elem.transform.baseVal.consolidate();
+    ctx.elem = null;
+};
+
+makeDraggable(startDragState, dragState, endDragState, canvas);
