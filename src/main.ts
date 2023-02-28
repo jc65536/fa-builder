@@ -1,4 +1,4 @@
-import { applyCTM, createSvgElement, dist, NumPair, screenToSvgCoords, closestPointsBetweenStates } from "./util.js";
+import { applyCTM, createSvgElement, dist, NumPair, screenToSvgCoords, closestPoints, setAttributes, ifelse } from "./util.js";
 import { stateConfig } from "./config.js";
 
 export const canvas = document.querySelector<SVGSVGElement>("#canvas");
@@ -99,13 +99,9 @@ const startDrag = (state: State) => (evt: MouseEvent) => {
             edge.classList.add("edge");
             edge.setAttribute("marker-end", "url(#arrow)");
 
-            const [x1, y1] = state.pos.map(c => c.toString());
-            edge.setAttribute("x1", x1);
-            edge.setAttribute("y1", y1);
-
-            const [x2, y2] = screenToSvgCoords(evt.x, evt.y).map(c => c.toString());
-            edge.setAttribute("x2", x2);
-            edge.setAttribute("y2", y2);
+            const cursorPos = screenToSvgCoords(evt.x, evt.y);
+            setAttributes(edge, ["x1", "y1", "x2", "y2"],
+                state.pos.concat(cursorPos).map(c => c.toString()));
 
             dragCtx = {
                 type: Drag.Edge,
@@ -128,23 +124,14 @@ const dragHandler = (evt: MouseEvent) => {
             break;
 
         case Drag.Edge:
-            let [x2, y2] = screenToSvgCoords(evt.x, evt.y);
+            const cursorPos = screenToSvgCoords(evt.x, evt.y);
             const to = [...states].find(state =>
-                dist([x2, y2], state.pos) < stateConfig.radius);
-
-            if (to !== undefined) {
-                [x2, y2] = to.pos;
-                dragCtx.to = to;
-                if (to !== dragCtx.from) {
-                    let x1: number, y1: number;
-                    [[x1, y1], [x2, y2]] = closestPointsBetweenStates(dragCtx.from.pos, to.pos);
-                    dragCtx.edge.setAttribute("x1", x1.toString());
-                    dragCtx.edge.setAttribute("y1", y1.toString());
-                }
-            }
-
-            dragCtx.edge.setAttribute("x2", x2.toString());
-            dragCtx.edge.setAttribute("y2", y2.toString());
+                dist(cursorPos, state.pos) < stateConfig.radius);
+            
+            const cursorPosOr = ifelse(to === undefined)(cursorPos);
+            const [pos1, pos2] = closestPoints(dragCtx.from.pos, cursorPosOr(to?.pos))
+            setAttributes(dragCtx.edge, ["x1", "y1", "x2", "y2"],
+                pos1.concat(cursorPosOr(pos2)).map(x => x.toString()));
             break;
     }
 };

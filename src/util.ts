@@ -15,10 +15,17 @@ export const applyCTM = (x: number, y: number, ctm: DOMMatrix): NumPair =>
 export const dist = (p1: NumPair, p2: NumPair) =>
     Math.hypot(p1[0] - p2[0], p1[1] - p2[1]);
 
-export const closestPointsBetweenStates = (c1: NumPair, c2: NumPair): [NumPair, NumPair] => {
+export const closestPoints = (c1: NumPair, c2: NumPair): [NumPair, NumPair] => {
     const r = stateConfig.radius;
-    const a = Math.atan2(c2[1] - c1[1], c2[0] - c1[0]);
+    const [x1, y1] = c1;
+    const [x2, y2] = c2;
+    const a = Math.atan2(y2 - y1, x2 - x1);
     const rcos = r * Math.cos(a);
     const rsin = r * Math.sin(a);
-    return [[c1[0] + rcos, c1[1] + rsin], [c2[0] - rcos, c2[1] - rsin]];
+    return [[x1 + rcos, y1 + rsin], [x2 - rcos, y2 - rsin]];
 };
+
+export const setAttributes = (elem: Element, attrs: string[], vals: string[]) =>
+    attrs.forEach((attr, i) => elem.setAttribute(attr, vals[i]));
+
+export const ifelse = (cond: boolean) => <T>(x: T) => (y: T) => cond ? x : y;
