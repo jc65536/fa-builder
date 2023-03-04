@@ -1,4 +1,4 @@
-import { applyCTM, createSvgElement, dist, NumPair, screenToSvgCoords, closestPoints, setAttributes, ifelse } from "./util.js";
+import { applyCTM, createSvgElement, dist, NumPair, screenToSvgCoords, closestPoints, setAttributes, ifelse, newStr, addVec, polarVec, setPathCmd, CtrlPoints, Path } from "./util.js";
 import { stateConfig } from "./config.js";
 
 export const canvas = document.querySelector<SVGSVGElement>("#canvas");
@@ -8,14 +8,23 @@ type State = {
     name: string,
     accepting: boolean,
     svgElem: SVGGraphicsElement,
-    pos: NumPair
+    pos: NumPair,
+    inEdges: Edge[],
+    outEdges: Edge[]
 };
 
 type StateInput = [State, string];
 
+type Edge = {
+    from: State,
+    to: State,
+    svgElem: SVGPathElement,
+    ctrlPoints: CtrlPoints
+};
+
 const states = new Set<State>();
 const acceptingStates = new Set<State>();
-const transFun = new Map<StateInput, State>();
+const transFun = new Map<StateInput, Edge>();
 
 const toggleAccept = (state: State) => () => {
     state.accepting = !state.accepting;
@@ -43,7 +52,9 @@ const addState = () => {
         name: "",
         accepting: false,
         svgElem: group,
-        pos: [0, 0]
+        pos: [0, 0],
+        inEdges: [],
+        outEdges: []
     };
     group.addEventListener("mousedown", startDrag(state));
     group.addEventListener("dblclick", toggleAccept(state));
@@ -65,9 +76,7 @@ type DragStateCtx = {
 
 type DragEdgeCtx = {
     type: Drag.Edge,
-    from: State,
-    to: State,
-    edge: SVGElement
+    edge: Edge
 };
 
 let dragCtx: DragStateCtx | DragEdgeCtx | { type: Drag.None } = {
@@ -89,28 +98,27 @@ const startDrag = (state: State) => (evt: MouseEvent) => {
                 init: screenToSvgCoords(evt.x, evt.y),
                 trans: trans,
                 inCanvas: false
-            }
+            };
 
             state.svgElem.transform.baseVal.appendItem(trans);
             break;
 
         case 2:
-            const edge = createSvgElement("line");
-            edge.classList.add("edge");
-            edge.setAttribute("marker-end", "url(#arrow)");
-
-            const cursorPos = screenToSvgCoords(evt.x, evt.y);
-            setAttributes(edge, ["x1", "y1", "x2", "y2"],
-                state.pos.concat(cursorPos).map(c => c.toString()));
+            const path = createSvgElement("path");
+            path.classList.add("edge");
+            path.setAttribute("marker-end", "url(#arrow)");
 
             dragCtx = {
                 type: Drag.Edge,
-                from: state,
-                to: state,
-                edge: edge
-            }
+                edge: {
+                    from: state,
+                    to: state,
+                    svgElem: path,
+                    ctrlPoints: null
+                }
+            };
 
-            canvas.appendChild(edge);
+            canvas.appendChild(path);
             break;
     }
 }
@@ -121,17 +129,54 @@ const dragHandler = (evt: MouseEvent) => {
             const init = dragCtx.init;
             const [tx, ty] = screenToSvgCoords(evt.x, evt.y).map((c, i) => c - init[i]);
             dragCtx.trans.setTranslate(tx, ty);
+
+            const state = dragCtx.state;
+            const newPos: NumPair = addVec(state.pos)([tx, ty]);
+            const addTrans = addVec([tx, ty]);
+
+            state.outEdges.forEach(edge => {
+                const cp = edge.ctrlPoints;
+                switch (cp.type) {
+                    case Path.Line:
+                        [cp.p1, cp.p2] = closestPoints(newPos, edge.to.pos);
+                        break;
+                    case Path.Bezier:
+                        cp.start = addTrans(cp.start);
+                        break;
+                }
+                setPathCmd(edge.svgElem, cp);
+            });
+
+            state.inEdges.forEach(edge => {
+                const cp = edge.ctrlPoints;
+                switch (cp.type) {
+                    case Path.Line:
+                        [cp.p1, cp.p2] = closestPoints(edge.from.pos, newPos);
+                        break;
+                    case Path.Bezier:
+                        cp.end = addTrans(cp.end);
+                        break;
+                }
+                setPathCmd(edge.svgElem, cp);
+            });
             break;
 
         case Drag.Edge:
             const cursorPos = screenToSvgCoords(evt.x, evt.y);
             const to = [...states].find(state =>
                 dist(cursorPos, state.pos) < stateConfig.radius);
-            
+
+            const edge = dragCtx.edge;
+            edge.to = to;
+
             const cursorPosOr = ifelse(to === undefined)(cursorPos);
-            const [pos1, pos2] = closestPoints(dragCtx.from.pos, cursorPosOr(to?.pos))
-            setAttributes(dragCtx.edge, ["x1", "y1", "x2", "y2"],
-                pos1.concat(cursorPosOr(pos2)).map(x => x.toString()));
+            const [p1, p2] = closestPoints(edge.from.pos, cursorPosOr(to?.pos))
+            edge.ctrlPoints = {
+                type: Path.Line,
+                p1: p1,
+                p2: cursorPosOr(p2)
+            }
+            setPathCmd(edge.svgElem, edge.ctrlPoints);
             break;
     }
 };
@@ -150,6 +195,33 @@ const dropHandler = (evt: MouseEvent) => {
         case Drag.Edge:
             if (evt.button !== 2)
                 return;
+
+            const edge = dragCtx.edge;
+            const path = edge.svgElem;
+
+            if (edge.to === undefined) {
+                path.remove();
+            } else {
+                if (edge.from === edge.to) {
+                    const addToFrom = addVec(edge.from.pos);
+                    edge.ctrlPoints = {
+                        type: Path.Bezier,
+                        start: addToFrom(polarVec(stateConfig.radius, Math.PI / 3)),
+                        startCtrlRel: polarVec(1.5 * stateConfig.radius, Math.PI / 2),
+                        endCtrlRel: polarVec(1.5 * stateConfig.radius, Math.PI / 2),
+                        end: addToFrom(polarVec(stateConfig.radius, Math.PI * 2 / 3))
+                    };
+                    setPathCmd(path, edge.ctrlPoints);
+                    path.setAttribute("marker-end", "url(#arrow)");
+                    path.classList.add("edge");
+                    canvas.appendChild(path);
+                }
+
+                transFun.set([edge.from, newStr()], edge);
+                edge.from.outEdges.push(edge);
+                edge.to.inEdges.push(edge);
+            }
+
             break;
     }
     dragCtx = { type: Drag.None };
