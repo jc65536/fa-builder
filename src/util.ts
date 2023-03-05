@@ -1,25 +1,23 @@
 import { stateConfig } from "./config.js";
 import { canvas } from "./main.js";
 
-export type NumPair = [number, number];
+export type Vec = [number, number];
 
 export const createSvgElement = <T extends keyof SVGElementTagNameMap>(name: T) =>
     document.createElementNS<T>("http://www.w3.org/2000/svg", name);
 
-export const screenToSvgCoords = (x: number, y: number): NumPair =>
-    applyCTM(x, y, canvas.getScreenCTM().inverse());
+export const screenToSvgCoords = (x: number, y: number): Vec =>
+    applyCTM([x, y], canvas.getScreenCTM().inverse());
 
-export const applyCTM = (x: number, y: number, ctm: DOMMatrix): NumPair =>
-    [ctm.a * x + ctm.e, ctm.d * y + ctm.f];
+export const applyCTM = (pos: Vec, ctm: DOMMatrix): Vec =>
+    [ctm.a * pos[0] + ctm.e, ctm.d * pos[1] + ctm.f];
 
-export const dist = (p1: NumPair, p2: NumPair) =>
+export const dist = (p1: Vec, p2: Vec) =>
     Math.hypot(p1[0] - p2[0], p1[1] - p2[1]);
 
-export const closestPoints = (c1: NumPair, c2: NumPair): [NumPair, NumPair] => {
+export const closestPoints = (c1: Vec, c2: Vec): [Vec, Vec] => {
     const r = stateConfig.radius;
-    const [x1, y1] = c1;
-    const [x2, y2] = c2;
-    const a = Math.atan2(y1 - y2, x2 - x1);
+    const a = atanVec(c1)(c2);
     const offset = polarVec(r, a);
     return [addVec(c1)(offset), subVec(c2)(offset)];
 };
@@ -27,36 +25,45 @@ export const closestPoints = (c1: NumPair, c2: NumPair): [NumPair, NumPair] => {
 export const setAttributes = (elem: Element, attrs: string[], vals: string[]) =>
     attrs.forEach((attr, i) => elem.setAttribute(attr, vals[i]));
 
-export const ifelse = (cond: boolean) =>
-    cond ? <T>(x: T) => (y: T) => x : <T>(x: T) => (y: T) => y;
+export const ifelse = (c: boolean) =>
+    c ? <T>(x: T) => (y: T) => x : <T>(x: T) => (y: T) => y;
 
-export const polarVec = (r: number, a: number): NumPair =>
+export const polarVec = (r: number, a: number): Vec =>
     [r * Math.cos(a), -r * Math.sin(a)];
 
-export const addVec = (v1: NumPair) => (v2: NumPair): NumPair =>
+export const addVec = (v1: Vec) => (v2: Vec): Vec =>
     [v1[0] + v2[0], v1[1] + v2[1]];
 
-export const subVec = (v1: NumPair) => (v2: NumPair): NumPair =>
+export const subVec = (v1: Vec) => (v2: Vec): Vec =>
     [v1[0] - v2[0], v1[1] - v2[1]];
 
-export const scaleVec = (v: NumPair) => (c: number): NumPair =>
+export const scaleVec = (v: Vec) => (c: number): Vec =>
     [c * v[0], c * v[1]];
+
+export const side = (a1: number) => (a2: number) =>
+    Math.sin(a2 - a1) >= 0 ? 1 : -1;
+
+export const atanVec = (p1: Vec) => (p2: Vec) =>
+    Math.atan2(p1[1] - p2[1], p2[0] - p1[0]);
 
 export enum Path { Line, Bezier }
 
 type LineCtrlPoints = {
     type: Path.Line,
-    p1: NumPair,
-    p2: NumPair
+    p1: Vec,
+    p2: Vec
 };
 
 type BezierCtrlPoints = {
     type: Path.Bezier,
-    start: NumPair,
-    startCtrlRel: NumPair,
-    endCtrlRel: NumPair,
-    end: NumPair
+    from: Vec,
+    startA: number,
+    startCtrlRel: Vec,
+    endCtrlRel: Vec,
+    endA: number,
+    to: Vec
 };
+
 export type CtrlPoints = LineCtrlPoints | BezierCtrlPoints;
 
 const pathCmd = (cp: CtrlPoints): string => {
@@ -65,7 +72,9 @@ const pathCmd = (cp: CtrlPoints): string => {
             const {p1, p2} = cp;
             return `M ${p1[0]},${p1[1]} L ${p2[0]},${p2[1]}`;
         case Path.Bezier:
-            const {start, startCtrlRel, endCtrlRel, end} = cp;
+            const {from, startA, startCtrlRel, endCtrlRel, endA, to} = cp;
+            const start = addVec(from)(polarVec(stateConfig.radius, startA));
+            const end = addVec(to)(polarVec(stateConfig.radius, endA));
             const startCtrl = addVec(start)(startCtrlRel);
             const endCtrl = addVec(end)(endCtrlRel);
             return `M ${start[0]},${start[1]}
