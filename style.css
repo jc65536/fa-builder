@@ -1,7 +1,7 @@
 #canvas {
     border: 1px solid black;
-    height: 48rem;
-    width: 48rem;
+    height: 60vh;
+    width: 75%;
 }
 
 .state {
@@ -15,4 +15,10 @@
     stroke-width: 2;
     stroke: black;
     fill: none;
+}
+
+.selection {
+    stroke-width: 1;
+    stroke: #666666;
+    fill: #66666611;
 }

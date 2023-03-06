@@ -1,7 +1,7 @@
 import {
     applyCTM, createSvgElement, dist, Vec, screenToSvgCoords,
     closestPoints, ifelse, newStr, addVec, polarVec, setPathCmd, CtrlPoints,
-    Path, subVec, side, atanVec
+    Path, subVec, side, atanVec, setAttributes
 } from "./util.js";
 import { stateConfig } from "./config.js";
 
@@ -68,7 +68,7 @@ const addState = () => {
 
 button.addEventListener("click", addState);
 
-enum Drag { State, Edge, None }
+enum Drag { State, Edge, Selection, None }
 
 type DragStateCtx = {
     type: Drag.State,
@@ -83,8 +83,33 @@ type DragEdgeCtx = {
     edge: Edge
 };
 
-let dragCtx: DragStateCtx | DragEdgeCtx | { type: Drag.None } = {
+type DragSelectionCtx = {
+    type: Drag.Selection,
+    init: Vec,
+    rect: SVGRectElement
+}
+
+let dragCtx: DragStateCtx | DragEdgeCtx | DragSelectionCtx | { type: Drag.None } = {
     type: Drag.None
+};
+
+const startDragSelection = (evt: MouseEvent) => {
+    if (dragCtx.type !== Drag.None || evt.button !== 0)
+        return;
+
+    const init = screenToSvgCoords(evt.x, evt.y);
+    const rect = createSvgElement("rect");
+    rect.classList.add("selection");
+    setAttributes(rect, ["x", "y", "width", "height"],
+        init.concat([0, 0]).map(x => x.toString()));
+
+    dragCtx = {
+        type: Drag.Selection,
+        init: init,
+        rect: rect
+    };
+
+    canvas.appendChild(rect);
 };
 
 const startDrag = (state: State) => (evt: MouseEvent) => {
@@ -128,10 +153,15 @@ const startDrag = (state: State) => (evt: MouseEvent) => {
 }
 
 const dragHandler = (evt: MouseEvent) => {
+    if (dragCtx.type === Drag.None)
+        return;
+
+    const mousePos = screenToSvgCoords(evt.x, evt.y);
+
     switch (dragCtx.type) {
         case Drag.State:
             const init = dragCtx.init;
-            const [tx, ty] = subVec(screenToSvgCoords(evt.x, evt.y))(init);
+            const [tx, ty] = subVec(mousePos)(init);
             dragCtx.trans.setTranslate(tx, ty);
 
             const addTrans = addVec([tx, ty]);
@@ -166,14 +196,13 @@ const dragHandler = (evt: MouseEvent) => {
             break;
 
         case Drag.Edge:
-            const cursorPos = screenToSvgCoords(evt.x, evt.y);
             const to = [...states].find(state =>
-                dist(cursorPos, state.pos) < stateConfig.radius);
+                dist(mousePos, state.pos) < stateConfig.radius);
 
             const edge = dragCtx.edge;
             edge.to = to;
 
-            const cursorPosOr = ifelse(to === undefined)(cursorPos);
+            const cursorPosOr = ifelse(to === undefined)(mousePos);
             const [p1, p2] = closestPoints(edge.from.pos, cursorPosOr(to?.pos))
             edge.ctrlPoints = {
                 type: Path.Line,
@@ -182,6 +211,12 @@ const dragHandler = (evt: MouseEvent) => {
             }
             setPathCmd(edge.svgElem, edge.ctrlPoints);
             break;
+        
+        case Drag.Selection:
+            const topLeft = dragCtx.init.map((x, i) => Math.min(x, mousePos[i]));
+            const dim = dragCtx.init.map((x, i) => Math.max(x, mousePos[i]) - topLeft[i]);
+            setAttributes(dragCtx.rect, ["x", "y", "width", "height"],
+                topLeft.concat(dim).map(x => x.toString()));
     }
 };
 
@@ -222,7 +257,7 @@ const dropHandler = (evt: MouseEvent) => {
                 path.setAttribute("marker-end", "url(#arrow)");
                 path.classList.add("edge");
                 canvas.appendChild(path);
-                
+
                 edge.from.outEdges.filter(e => e.to === edge.to).forEach(e => {
                     const cp = e.ctrlPoints;
                     if (cp.type === Path.Bezier) {
@@ -271,6 +306,9 @@ const dropHandler = (evt: MouseEvent) => {
             edge.svgElem.addEventListener("click", _ => alert());
 
             break;
+        
+        case Drag.Selection:
+            dragCtx.rect.remove();
     }
     dragCtx = { type: Drag.None };
 };
@@ -279,3 +317,5 @@ document.addEventListener("mousemove", dragHandler);
 document.addEventListener("mouseup", dropHandler);
 
 canvas.addEventListener("contextmenu", evt => evt.preventDefault());
+
+canvas.addEventListener("mousedown", startDragSelection);
