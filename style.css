@@ -23,3 +23,25 @@
     stroke: #666666;
     fill: #66666611;
 }
+
+#add-state {
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    text-align: center;
+    cursor: move;
+    user-select: none;
+}
+
+.statelike {
+    box-sizing: border-box;
+    /* Using px here to correspond to SVG units */
+    width: 74px;
+    height: 74px;
+    border: 2px solid black;
+    border-radius: 100%;
+}
+
+.draggable {
+    position: fixed;
+}

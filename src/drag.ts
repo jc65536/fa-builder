@@ -1,10 +1,13 @@
 import { stateConfig } from "./config.js";
-import { Edge, State, StateInput } from "./main.js";
-import { Vec, subVec, addVec, Path, closestPoints, setPathCmd, applyCTM, dist, ifelse, polarVec, atanVec, side, newStr, setAttributes } from "./util.js";
+import { addState, Edge, State, StateInput } from "./main.js";
+import {
+    Vec, subVec, addVec, Path, closestPoints, setPathCmd, applyCTM, dist,
+    ifelse, polarVec, atanVec, side, newStr, setAttributes, screenToSvgCoords, scaleVec
+} from "./util.js";
 
 export abstract class DragCtx {
-    abstract handleDrag(mousePos: Vec): void;
-    abstract handleDrop(mousePos: Vec): void;
+    abstract handleDrag(evt: MouseEvent): void;
+    abstract handleDrop(evt: MouseEvent): void;
 }
 
 export class DragStateCtx extends DragCtx {
@@ -19,7 +22,8 @@ export class DragStateCtx extends DragCtx {
         this.trans = trans;
     }
 
-    handleDrag(mousePos: Vec): void {
+    handleDrag(evt: MouseEvent): void {
+        const mousePos = screenToSvgCoords([evt.x, evt.y]);
         const [tx, ty] = subVec(mousePos)(this.init);
         this.trans.setTranslate(tx, ty);
 
@@ -53,7 +57,7 @@ export class DragStateCtx extends DragCtx {
         });
     }
 
-    handleDrop(mousePos: Vec): void {
+    handleDrop(evt: MouseEvent): void {
         this.state.svgElem.transform.baseVal.consolidate();
         this.state.pos = applyCTM([0, 0], this.state.svgElem.getCTM());
     }
@@ -73,7 +77,8 @@ export class DragEdgeCtx extends DragCtx {
         this.edge = edge;
     }
 
-    handleDrag(mousePos: Vec): void {
+    handleDrag(evt: MouseEvent): void {
+        const mousePos = screenToSvgCoords([evt.x, evt.y]);
         const to = [...this.states].find(state =>
             dist(mousePos, state.pos) < stateConfig.radius);
 
@@ -89,7 +94,7 @@ export class DragEdgeCtx extends DragCtx {
         setPathCmd(this.edge.svgElem, this.edge.ctrlPoints);
     }
 
-    handleDrop(mousePos: Vec): void {
+    handleDrop(evt: MouseEvent): void {
         const edge = this.edge;
         const path = this.edge.svgElem;
 
@@ -172,14 +177,38 @@ export class DragSelectionCtx extends DragCtx {
         this.rect = rect;
     }
 
-    handleDrag(mousePos: Vec): void {
+    handleDrag(evt: MouseEvent): void {
+        const mousePos = screenToSvgCoords([evt.x, evt.y]);
         const topLeft = this.init.map((x, i) => Math.min(x, mousePos[i]));
         const dim = this.init.map((x, i) => Math.max(x, mousePos[i]) - topLeft[i]);
         setAttributes(this.rect, ["x", "y", "width", "height"],
             topLeft.concat(dim).map(x => x.toString()));
     }
 
-    handleDrop(mousePos: Vec): void {
+    handleDrop(evt: MouseEvent): void {
         this.rect.remove();
+    }
+}
+
+export class DragAddStateCtx extends DragCtx {
+    offset: Vec;
+    circle: HTMLElement;
+
+    constructor(offset: Vec, circle: HTMLElement) {
+        super();
+        this.offset = offset;
+        this.circle = circle;
+    }
+
+    handleDrag(evt: MouseEvent): void {
+        const style = this.circle.style;
+        [style.left, style.top] = subVec([evt.x, evt.y])(this.offset).map(n => `${n}px`);
+    }
+
+    handleDrop(evt: MouseEvent): void {
+        const rect = this.circle.getBoundingClientRect();
+        const center = scaleVec(0.5)(addVec([rect.x, rect.y])([rect.right, rect.bottom]));
+        addState(screenToSvgCoords(center));
+        this.circle.remove();
     }
 }

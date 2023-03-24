@@ -1,13 +1,11 @@
 import {
-    applyCTM, createSvgElement, dist, Vec, screenToSvgCoords,
-    closestPoints, ifelse, newStr, addVec, polarVec, setPathCmd, CtrlPoints,
-    Path, subVec, side, atanVec, setAttributes
+    createSvgElement, Vec, screenToSvgCoords, CtrlPoints, setAttributes, addVec, scaleVec, subVec
 } from "./util.js";
 import { stateConfig } from "./config.js";
-import { DragCtx, DragEdgeCtx, DragSelectionCtx, DragStateCtx } from "./drag.js";
+import { DragAddStateCtx, DragCtx, DragEdgeCtx, DragSelectionCtx, DragStateCtx } from "./drag.js";
 
 export const canvas = document.querySelector<SVGSVGElement>("#canvas");
-const button = document.querySelector<HTMLButtonElement>("#add-state");
+const addStateElem = document.querySelector<HTMLButtonElement>("#add-state");
 
 export type State = {
     name: string,
@@ -45,7 +43,7 @@ const toggleAccept = (state: State) => () => {
     }
 };
 
-const addState = () => {
+export const addState = (pos: Vec) => {
     const circle = createSvgElement("circle");
     circle.setAttribute("r", stateConfig.radius.toString());
 
@@ -53,21 +51,24 @@ const addState = () => {
     group.classList.add("state");
     group.appendChild(circle);
 
+    const trans = canvas.createSVGTransform();
+    trans.setTranslate(pos[0], pos[1]);
+    group.transform.baseVal.appendItem(trans);
+
     const state: State = {
         name: "",
         accepting: false,
         svgElem: group,
-        pos: [0, 0],
+        pos: pos,
         inEdges: [],
         outEdges: []
     };
+
     group.addEventListener("mousedown", startDragOnState(state));
     group.addEventListener("dblclick", toggleAccept(state));
     states.add(state);
     canvas.appendChild(group);
 };
-
-button.addEventListener("click", addState);
 
 let dragCtx: DragCtx = null;
 
@@ -75,7 +76,7 @@ const startDragSelection = (evt: MouseEvent) => {
     if (dragCtx !== null || evt.button !== 0)
         return;
 
-    const init = screenToSvgCoords(evt.x, evt.y);
+    const init = screenToSvgCoords([evt.x, evt.y]);
     const rect = createSvgElement("rect");
     rect.classList.add("selection");
     setAttributes(rect, ["x", "y", "width", "height"],
@@ -95,7 +96,7 @@ const startDragOnState = (state: State) => (evt: MouseEvent) => {
             const trans = canvas.createSVGTransform();
             trans.setTranslate(0, 0);
 
-            dragCtx = new DragStateCtx(state, screenToSvgCoords(evt.x, evt.y),
+            dragCtx = new DragStateCtx(state, screenToSvgCoords([evt.x, evt.y]),
                 trans);
 
             state.svgElem.transform.baseVal.appendItem(trans);
@@ -117,11 +118,24 @@ const startDragOnState = (state: State) => (evt: MouseEvent) => {
     }
 }
 
+const startDragAddState = (evt: MouseEvent) => {
+    const circle = document.createElement("div");
+    circle.classList.add("statelike", "draggable");
+    const rect = addStateElem.getBoundingClientRect();
+    circle.style.left = `${rect.x}px`;
+    circle.style.top = `${rect.y}px`;
+    const offset = subVec([evt.x, evt.y])([rect.x, rect.y]);
+    dragCtx = new DragAddStateCtx(offset, circle);
+    addStateElem.appendChild(circle);
+}
+
+addStateElem.addEventListener("mousedown", startDragAddState);
+
 document.addEventListener("mousemove", (evt: MouseEvent) =>
-    dragCtx?.handleDrag(screenToSvgCoords(evt.x, evt.y)));
+    dragCtx?.handleDrag(evt));
 
 document.addEventListener("mouseup", (evt: MouseEvent) => {
-    dragCtx?.handleDrop(screenToSvgCoords(evt.x, evt.y));
+    dragCtx?.handleDrop(evt);
     dragCtx = null;
 });
 

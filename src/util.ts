@@ -6,8 +6,8 @@ export type Vec = [number, number];
 export const createSvgElement = <T extends keyof SVGElementTagNameMap>(name: T) =>
     document.createElementNS<T>("http://www.w3.org/2000/svg", name);
 
-export const screenToSvgCoords = (x: number, y: number): Vec =>
-    applyCTM([x, y], canvas.getScreenCTM().inverse());
+export const screenToSvgCoords = (pos: Vec): Vec =>
+    applyCTM(pos, canvas.getScreenCTM().inverse());
 
 export const applyCTM = (pos: Vec, ctm: DOMMatrix): Vec =>
     [ctm.a * pos[0] + ctm.e, ctm.d * pos[1] + ctm.f];
@@ -37,7 +37,7 @@ export const addVec = (v1: Vec) => (v2: Vec): Vec =>
 export const subVec = (v1: Vec) => (v2: Vec): Vec =>
     [v1[0] - v2[0], v1[1] - v2[1]];
 
-export const scaleVec = (v: Vec) => (c: number): Vec =>
+export const scaleVec = (c: number) => (v: Vec): Vec =>
     [c * v[0], c * v[1]];
 
 export const side = (a1: number) => (a2: number) =>
