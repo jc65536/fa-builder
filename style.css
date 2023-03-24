@@ -1,3 +1,9 @@
+:root {
+    --fa-stroke: #151515;
+    --sel-fill: #317fff10;
+    --sel-stroke: #317fff;
+}
+
 #canvas {
     border: 1px solid black;
     height: 60vh;
@@ -7,21 +13,22 @@
 .state {
     cursor: move;
     stroke-width: 2;
-    stroke: black;
+    stroke: var(--fa-stroke);
+    /* Can't use none here, otherwise mouse events won't land */
     fill: transparent;
 }
 
 .edge {
     stroke-width: 2;
-    stroke: black;
+    stroke: var(--fa-stroke);
     fill: none;
     marker-end: url(#arrow);
 }
 
 .selection {
     stroke-width: 1;
-    stroke: #666666;
-    fill: #66666611;
+    stroke: var(--sel-stroke);
+    fill: var(--sel-fill);
 }
 
 #add-state {
@@ -38,7 +45,7 @@
     /* Using px here to correspond to SVG units */
     width: 74px;
     height: 74px;
-    border: 2px solid black;
+    border: 2px solid var(--fa-stroke);
     border-radius: 100%;
 }
 
