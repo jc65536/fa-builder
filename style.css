@@ -15,6 +15,7 @@
     stroke-width: 2;
     stroke: black;
     fill: none;
+    marker-end: url(#arrow);
 }
 
 .selection {
