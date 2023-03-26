@@ -1,9 +1,10 @@
 import { stateConfig } from "./config.js";
-import { addState, Edge, State, StateInput } from "./main.js";
+import { addState, canvas, Edge, State, states, transFun } from "./main.js";
 import {
-    Vec, subVec, addVec, Path, closestPoints, setPathCmd, applyCTM, dist,
-    ifelse, polarVec, atanVec, side, newStr, setAttributes, screenToSvgCoords, scaleVec
+    Path, setPathCmd, applyCTM, closestPoints, ifelse, side, newStr,
+    setAttributes, screenToSvgCoords, numOrd, lineIntersectsRect
 } from "./util.js";
+import * as vec from "./vector.js";
 
 export abstract class DragCtx {
     abstract handleDrag(evt: MouseEvent): void;
@@ -12,10 +13,10 @@ export abstract class DragCtx {
 
 export class DragStateCtx extends DragCtx {
     state: State;
-    init: Vec;
+    init: vec.Vec;
     trans: SVGTransform;
 
-    constructor(state: State, init: Vec, trans: SVGTransform) {
+    constructor(state: State, init: vec.Vec, trans: SVGTransform) {
         super();
         this.state = state;
         this.init = init;
@@ -24,11 +25,11 @@ export class DragStateCtx extends DragCtx {
 
     handleDrag(evt: MouseEvent): void {
         const mousePos = screenToSvgCoords([evt.x, evt.y]);
-        const [tx, ty] = subVec(mousePos)(this.init);
+        const [tx, ty] = vec.sub(mousePos)(this.init);
         this.trans.setTranslate(tx, ty);
 
-        const addTrans = addVec([tx, ty]);
-        const newPos: Vec = addTrans(this.state.pos);
+        const addTrans = vec.add([tx, ty]);
+        const newPos: vec.Vec = addTrans(this.state.pos);
 
         this.state.outEdges.forEach(edge => {
             const cp = edge.ctrlPoints;
@@ -64,23 +65,17 @@ export class DragStateCtx extends DragCtx {
 }
 
 export class DragEdgeCtx extends DragCtx {
-    canvas: SVGSVGElement;
-    states: Set<State>;
     edge: Edge;
-    transFun: Map<StateInput, Edge>;
 
-    constructor(canvas: SVGSVGElement, states: Set<State>, transFun: Map<StateInput, Edge>, edge: Edge) {
+    constructor(edge: Edge) {
         super();
-        this.canvas = canvas;
-        this.states = states;
-        this.transFun = transFun;
         this.edge = edge;
     }
 
     handleDrag(evt: MouseEvent): void {
         const mousePos = screenToSvgCoords([evt.x, evt.y]);
-        const to = [...this.states].find(state =>
-            dist(mousePos, state.pos) < stateConfig.radius);
+        const to = [...states].find(state =>
+            vec.dist(mousePos, state.pos) < stateConfig.radius);
 
         this.edge.to = to;
 
@@ -108,23 +103,23 @@ export class DragEdgeCtx extends DragCtx {
                 type: Path.Bezier,
                 from: edge.from.pos,
                 startA: Math.PI / 3,
-                startCtrlRel: polarVec(1.5 * stateConfig.radius, Math.PI / 2),
-                endCtrlRel: polarVec(1.5 * stateConfig.radius, Math.PI / 2),
+                startCtrlRel: vec.polar(1.5 * stateConfig.radius, Math.PI / 2),
+                endCtrlRel: vec.polar(1.5 * stateConfig.radius, Math.PI / 2),
                 endA: Math.PI * 2 / 3,
                 to: edge.from.pos
             };
             setPathCmd(path, edge.ctrlPoints);
             path.setAttribute("marker-end", "url(#arrow)");
             path.classList.add("edge");
-            this.canvas.appendChild(path);
+            canvas.appendChild(path);
 
             edge.from.outEdges.filter(e => e.to === edge.to).forEach(e => {
                 const cp = e.ctrlPoints;
                 if (cp.type === Path.Bezier) {
                     cp.startA += Math.PI / 3;
-                    cp.startCtrlRel = polarVec(1.5 * stateConfig.radius, cp.startA + Math.PI / 6);
+                    cp.startCtrlRel = vec.polar(1.5 * stateConfig.radius, cp.startA + Math.PI / 6);
                     cp.endA += Math.PI / 3;
-                    cp.endCtrlRel = polarVec(1.5 * stateConfig.radius, cp.endA - Math.PI / 6);
+                    cp.endCtrlRel = vec.polar(1.5 * stateConfig.radius, cp.endA - Math.PI / 6);
                     setPathCmd(e.svgElem, cp);
                 }
             });
@@ -133,7 +128,7 @@ export class DragEdgeCtx extends DragCtx {
                 const cp = e.ctrlPoints;
                 const fromPos = e.from.pos;
                 const toPos = e.to.pos;
-                const a = atanVec(fromPos)(toPos);
+                const a = vec.angleBetweenScreen(fromPos)(toPos);
                 const da = Math.PI / 6;
                 switch (cp.type) {
                     case Path.Line:
@@ -141,17 +136,17 @@ export class DragEdgeCtx extends DragCtx {
                             type: Path.Bezier,
                             from: fromPos,
                             startA: a + da,
-                            startCtrlRel: polarVec(1.5 * stateConfig.radius, a + da),
-                            endCtrlRel: polarVec(1.5 * stateConfig.radius, a + Math.PI - da),
+                            startCtrlRel: vec.polar(1.5 * stateConfig.radius, a + da),
+                            endCtrlRel: vec.polar(1.5 * stateConfig.radius, a + Math.PI - da),
                             endA: a + Math.PI - da,
                             to: toPos
                         }
                         break;
                     case Path.Bezier:
                         cp.startA += side(a)(cp.startA) * da;
-                        cp.startCtrlRel = polarVec(1.5 * stateConfig.radius, cp.startA);
+                        cp.startCtrlRel = vec.polar(1.5 * stateConfig.radius, cp.startA);
                         cp.endA += side(a + Math.PI)(cp.endA) * da;
-                        cp.endCtrlRel = polarVec(1.5 * stateConfig.radius, cp.endA);
+                        cp.endCtrlRel = vec.polar(1.5 * stateConfig.radius, cp.endA);
                         break;
                 }
                 setPathCmd(e.svgElem, e.ctrlPoints);
@@ -160,7 +155,7 @@ export class DragEdgeCtx extends DragCtx {
 
         edge.from.inEdges.filter(e => e.from === edge.to);
 
-        this.transFun.set([edge.from, newStr()], edge);
+        transFun.set([edge.from, newStr()], edge);
         edge.from.outEdges.push(edge);
         edge.to.inEdges.push(edge);
         edge.svgElem.addEventListener("click", _ => alert());
@@ -168,10 +163,10 @@ export class DragEdgeCtx extends DragCtx {
 }
 
 export class DragSelectionCtx extends DragCtx {
-    init: Vec;
+    init: vec.Vec;
     rect: SVGRectElement;
 
-    constructor(init: Vec, rect: SVGRectElement) {
+    constructor(init: vec.Vec, rect: SVGRectElement) {
         super();
         this.init = init;
         this.rect = rect;
@@ -179,22 +174,43 @@ export class DragSelectionCtx extends DragCtx {
 
     handleDrag(evt: MouseEvent): void {
         const mousePos = screenToSvgCoords([evt.x, evt.y]);
-        const topLeft = this.init.map((x, i) => Math.min(x, mousePos[i]));
-        const dim = this.init.map((x, i) => Math.max(x, mousePos[i]) - topLeft[i]);
+        const topLeft = this.init.map((x, i) => Math.min(x, mousePos[i])) as vec.Vec;
+        const dim = this.init.map((x, i) => Math.max(x, mousePos[i]) - topLeft[i]) as vec.Vec;
         setAttributes(this.rect, ["x", "y", "width", "height"],
             topLeft.concat(dim).map(x => x.toString()));
+
+        const mark = (edge: Edge) => {
+            edge.svgElem.classList.add("selected");
+        };
+
+        const unmark = (edge: Edge) => {
+            edge.svgElem.classList.remove("selected");
+        };
+
+        const botRight = vec.add(topLeft)(dim);
+        transFun.forEach(edge => {
+            const cp = edge.ctrlPoints;
+            switch (cp.type) {
+                case Path.Line:
+                    ifelse(lineIntersectsRect(cp.p1, cp.p2, topLeft, botRight))
+                        (mark)(unmark)(edge);
+                case Path.Bezier:
+                    break;
+            }
+        });
     }
 
     handleDrop(evt: MouseEvent): void {
         this.rect.remove();
+        document.querySelectorAll(".selected").forEach(e => e.classList.remove("selected"));
     }
 }
 
 export class DragAddStateCtx extends DragCtx {
-    offset: Vec;
+    offset: vec.Vec;
     circle: HTMLElement;
 
-    constructor(offset: Vec, circle: HTMLElement) {
+    constructor(offset: vec.Vec, circle: HTMLElement) {
         super();
         this.offset = offset;
         this.circle = circle;
@@ -202,12 +218,12 @@ export class DragAddStateCtx extends DragCtx {
 
     handleDrag(evt: MouseEvent): void {
         const style = this.circle.style;
-        [style.left, style.top] = subVec([evt.x, evt.y])(this.offset).map(n => `${n}px`);
+        [style.left, style.top] = vec.sub([evt.x, evt.y])(this.offset).map(n => `${n}px`);
     }
 
     handleDrop(evt: MouseEvent): void {
         const rect = this.circle.getBoundingClientRect();
-        const center = scaleVec(0.5)(addVec([rect.x, rect.y])([rect.right, rect.bottom]));
+        const center = vec.scale(0.5)(vec.add([rect.x, rect.y])([rect.right, rect.bottom]));
         addState(screenToSvgCoords(center));
         this.circle.remove();
     }

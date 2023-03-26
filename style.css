@@ -25,6 +25,14 @@
     marker-end: url(#arrow);
 }
 
+#arrow {
+    fill: context-stroke;
+}
+
+.selected {
+    stroke: red;
+}
+
 .selection {
     stroke-width: 1;
     stroke: var(--sel-stroke);

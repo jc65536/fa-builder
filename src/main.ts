@@ -1,6 +1,7 @@
 import {
-    createSvgElement, Vec, screenToSvgCoords, CtrlPoints, setAttributes, addVec, scaleVec, subVec
+    createSvgElement, screenToSvgCoords, CtrlPoints, setAttributes, solveCubic
 } from "./util.js";
+import * as vec from "./vector.js";
 import { stateConfig } from "./config.js";
 import { DragAddStateCtx, DragCtx, DragEdgeCtx, DragSelectionCtx, DragStateCtx } from "./drag.js";
 
@@ -11,7 +12,7 @@ export type State = {
     name: string,
     accepting: boolean,
     svgElem: SVGGraphicsElement,
-    pos: Vec,
+    pos: vec.Vec,
     inEdges: Edge[],
     outEdges: Edge[]
 };
@@ -25,9 +26,9 @@ export type Edge = {
     ctrlPoints: CtrlPoints
 };
 
-const states = new Set<State>();
+export const states = new Set<State>();
 const acceptingStates = new Set<State>();
-const transFun = new Map<StateInput, Edge>();
+export const transFun = new Map<StateInput, Edge>();
 
 const toggleAccept = (state: State) => () => {
     state.accepting = !state.accepting;
@@ -43,7 +44,7 @@ const toggleAccept = (state: State) => () => {
     }
 };
 
-export const addState = (pos: Vec) => {
+export const addState = (pos: vec.Vec) => {
     const circle = createSvgElement("circle");
     circle.setAttribute("r", stateConfig.radius.toString());
 
@@ -106,12 +107,12 @@ const startDragOnState = (state: State) => (evt: MouseEvent) => {
             const path = createSvgElement("path");
             path.classList.add("edge");
 
-            dragCtx = new DragEdgeCtx(canvas, states, transFun, {
+            dragCtx = new DragEdgeCtx({
                 from: state,
                 to: state,
                 svgElem: path,
                 ctrlPoints: null
-            })
+            });
 
             canvas.appendChild(path);
             break;
@@ -124,7 +125,7 @@ const startDragAddState = (evt: MouseEvent) => {
     const rect = addStateElem.getBoundingClientRect();
     circle.style.left = `${rect.x}px`;
     circle.style.top = `${rect.y}px`;
-    const offset = subVec([evt.x, evt.y])([rect.x, rect.y]);
+    const offset = vec.sub([evt.x, evt.y])([rect.x, rect.y]);
     dragCtx = new DragAddStateCtx(offset, circle);
     addStateElem.appendChild(circle);
 }
