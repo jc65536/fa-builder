@@ -2,7 +2,7 @@ import { stateConfig } from "./config.js";
 import { addState, canvas, Edge, State, states, transFun } from "./main.js";
 import {
     Path, setPathCmd, applyCTM, closestPoints, ifelse, side, newStr,
-    setAttributes, screenToSvgCoords, numOrd, lineIntersectsRect
+    setAttributes, screenToSvgCoords, numOrd, lineIntersectsRect, bezierIntersectsRect
 } from "./util.js";
 import * as vec from "./vector.js";
 
@@ -194,7 +194,14 @@ export class DragSelectionCtx extends DragCtx {
                 case Path.Line:
                     ifelse(lineIntersectsRect(cp.p1, cp.p2, topLeft, botRight))
                         (mark)(unmark)(edge);
+                    break;
                 case Path.Bezier:
+                    const start = vec.add(cp.from)(vec.polar(stateConfig.radius, cp.startA));
+                    const end = vec.add(cp.to)(vec.polar(stateConfig.radius, cp.endA));
+                    const startCtrl = vec.add(start)(cp.startCtrlRel);
+                    const endCtrl = vec.add(end)(cp.endCtrlRel);
+                    ifelse(bezierIntersectsRect(start, startCtrl, endCtrl, end, topLeft, botRight))
+                        (mark)(unmark)(edge);
                     break;
             }
         });

@@ -16,4 +16,3 @@ export const scale = (c: number) => (v: Vec): Vec =>
 
 export const angleBetweenScreen = (p1: Vec) => (p2: Vec) =>
     Math.atan2(p1[1] - p2[1], p2[0] - p1[0]);
-

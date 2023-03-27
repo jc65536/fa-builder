@@ -93,31 +93,24 @@ export const lineIntersectsRect = ([x1, y1]: Vec, [x2, y2]: Vec,
     return lb <= ub && lb <= 1 && 0 <= ub;
 };
 
-export const bezierIntersectsRect = ([x1, y1]: Vec, [x2, y2]: Vec,
-    [x3, y3]: Vec, [x4, y4]: Vec,
-    [l, t]: Vec, [r, b]: Vec) => {
-
-    // a is the cubic coefficient array
-    {
-        const [a, b, c, d] = [x4 - 3 * x3 + 3 * x2 - x1,
-        3 * (x3 - 2 * x2 + x1),
-        3 * (x2 - x1),
-            x1];
-        // const delta = 18 * a * b * c * d
-        //     - 4 * Math.pow(b, 3) * d
-        //     + Math.pow(b * c, 2)
-        //     - 4 * a * Math.pow(c, 3)
-        //     - 27 * Math.pow(a * d, 2);
-    }
-    0
-};
-
-export const solveCubic = (a: number, b: number, c: number, d: number) => {
+const solveCubic = (a: number, b: number, c: number, d: number) => {
     const delta0 = Math.pow(b, 2) - 3 * a * c;
     const delta1 = 2 * Math.pow(b, 3) - 9 * a * b * c + 27 * Math.pow(a, 2) * d;
 
-    if (delta0 === 0 && delta1 === 0)
-        return [-b / (3 * a)];
+    const disc = 4 * Math.pow(delta0, 3) - Math.pow(delta1, 2);
+
+    if (disc === 0) {
+        if (delta0 === 0) {
+            // Only one triple root needed for bezierIntersectsRect
+            const tripleRoot = -b / (3 * a);
+            return [tripleRoot, tripleRoot, tripleRoot];
+        } else {
+            // Double root not actually needed for bezierIntersectsRect
+            const doubleRoot = (9 * a * d - b * c) / (2 * delta0);
+            return [doubleRoot, doubleRoot,
+                (4 * a * b * c - 9 * Math.pow(a, 2) * d - Math.pow(b, 3)) / (a * delta0)]
+        }
+    }
 
     const C = (() => {
         if (delta0 === 0) {
@@ -133,6 +126,66 @@ export const solveCubic = (a: number, b: number, c: number, d: number) => {
         .filter(z => Math.abs(Math.sin(z.a)) < 1e-9)
         .map(z => Math.sign(Math.cos(z.a)) * z.r);
 }
+
+const bezierCoef = (x1: number, x2: number, x3: number, x4: number) =>
+    [x4 - 3 * x3 + 3 * x2 - x1,
+    3 * (x3 - 2 * x2 + x1),
+    3 * (x2 - x1),
+        x1];
+
+// Assume xints.length and yints.length are both even
+const intsOverlap = (xints: number[], yints: number[]): boolean => {
+    if (xints.length === 0 || yints.length === 0)
+        return false;
+
+    const [x1, x2, ...xrest] = xints;
+    const [y1, y2, ...yrest] = yints;
+
+    if (x2 < y1)
+        return intsOverlap(xrest, yints);
+    else if (y2 < x1)
+        return intsOverlap(xints, yrest);
+    else
+        return true;
+}
+
+// Assume ints.length is even
+const trimInts = (ints: number[], prev: number[] = []): number[] => {
+    if (ints.length === 0)
+        return prev;
+
+    const [x1, x2, ...rest] = ints;
+
+    if (x2 < 0)
+        return trimInts(rest);
+    else if (x1 < 0)
+        return trimInts(rest, [0, x2]);
+    else if (x1 > 1)
+        return prev;
+    else if (x2 > 1)
+        return [...prev, x1, 1];
+    else
+        return trimInts(rest, [...prev, x1, x2]);
+};
+
+export const bezierIntersectsRect = ([x1, y1]: Vec, [x2, y2]: Vec,
+    [x3, y3]: Vec, [x4, y4]: Vec,
+    [l, t]: Vec, [r, b]: Vec) => {
+
+    const [ax, bx, cx, dx] = bezierCoef(x1, x2, x3, x4);
+
+    const xints = solveCubic(ax, bx, cx, dx - l)
+        .concat(solveCubic(ax, bx, cx, dx - r))
+        .sort(numOrd);
+
+    const [ay, by, cy, dy] = bezierCoef(y1, y2, y3, y4);
+
+    const yints = solveCubic(ay, by, cy, dy - t)
+        .concat(solveCubic(ay, by, cy, dy - b))
+        .sort(numOrd);
+
+    return intsOverlap(trimInts(xints), trimInts(yints));
+};
 
 // Debug helpers
 

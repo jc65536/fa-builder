@@ -1,5 +1,5 @@
 import {
-    createSvgElement, screenToSvgCoords, CtrlPoints, setAttributes, solveCubic
+    createSvgElement, screenToSvgCoords, CtrlPoints, setAttributes
 } from "./util.js";
 import * as vec from "./vector.js";
 import { stateConfig } from "./config.js";
