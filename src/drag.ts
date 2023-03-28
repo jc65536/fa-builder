@@ -1,5 +1,5 @@
-import { stateConfig } from "./config.js";
-import { addState, canvas, Edge, State, states, transFun } from "./main.js";
+import { epsilonChar, stateConfig } from "./config.js";
+import { addState, canvas, Edge, State, states, edges } from "./main.js";
 import {
     Path, setPathCmd, applyCTM, closestPoints, ifelse, side, newStr,
     setAttributes, screenToSvgCoords, numOrd, lineIntersectsRect, bezierIntersectsRect
@@ -155,7 +155,7 @@ export class DragEdgeCtx extends DragCtx {
 
         edge.from.inEdges.filter(e => e.from === edge.to);
 
-        transFun.set([edge.from, newStr()], edge);
+        edges.add(edge);
         edge.from.outEdges.push(edge);
         edge.to.inEdges.push(edge);
         edge.svgElem.addEventListener("click", _ => alert());
@@ -165,11 +165,13 @@ export class DragEdgeCtx extends DragCtx {
 export class DragSelectionCtx extends DragCtx {
     init: vec.Vec;
     rect: SVGRectElement;
+    selected: Set<Edge>;
 
     constructor(init: vec.Vec, rect: SVGRectElement) {
         super();
         this.init = init;
         this.rect = rect;
+        this.selected = new Set();
     }
 
     handleDrag(evt: MouseEvent): void {
@@ -180,15 +182,17 @@ export class DragSelectionCtx extends DragCtx {
             topLeft.concat(dim).map(x => x.toString()));
 
         const mark = (edge: Edge) => {
+            this.selected.add(edge);
             edge.svgElem.classList.add("selected");
         };
 
         const unmark = (edge: Edge) => {
+            this.selected.delete(edge);
             edge.svgElem.classList.remove("selected");
         };
 
         const botRight = vec.add(topLeft)(dim);
-        transFun.forEach(edge => {
+        edges.forEach(edge => {
             const cp = edge.ctrlPoints;
             switch (cp.type) {
                 case Path.Line:
@@ -208,8 +212,20 @@ export class DragSelectionCtx extends DragCtx {
     }
 
     handleDrop(evt: MouseEvent): void {
+        this.initTransConfigForm();
         this.rect.remove();
-        document.querySelectorAll(".selected").forEach(e => e.classList.remove("selected"));
+    }
+
+    initTransConfigForm(): void {
+        if (this.selected.size === 0)
+            return;
+
+        if (this.selected.size > 1) {
+            return;
+        }
+
+        const [selected] = [...this.selected.values()];
+
     }
 }
 

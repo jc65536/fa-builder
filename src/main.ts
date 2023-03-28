@@ -2,7 +2,7 @@ import {
     createSvgElement, screenToSvgCoords, CtrlPoints, setAttributes
 } from "./util.js";
 import * as vec from "./vector.js";
-import { stateConfig } from "./config.js";
+import { stateConfig, epsilonChar } from "./config.js";
 import { DragAddStateCtx, DragCtx, DragEdgeCtx, DragSelectionCtx, DragStateCtx } from "./drag.js";
 
 export const canvas = document.querySelector<SVGSVGElement>("#canvas");
@@ -21,6 +21,7 @@ export type StateInput = [State, string];
 
 export type Edge = {
     from: State,
+    transChar: string,
     to: State,
     svgElem: SVGPathElement,
     ctrlPoints: CtrlPoints
@@ -28,7 +29,7 @@ export type Edge = {
 
 export const states = new Set<State>();
 const acceptingStates = new Set<State>();
-export const transFun = new Map<StateInput, Edge>();
+export const edges = new Set<Edge>();
 
 const toggleAccept = (state: State) => () => {
     state.accepting = !state.accepting;
@@ -109,6 +110,7 @@ const startDragOnState = (state: State) => (evt: MouseEvent) => {
 
             dragCtx = new DragEdgeCtx({
                 from: state,
+                transChar: "",
                 to: state,
                 svgElem: path,
                 ctrlPoints: null

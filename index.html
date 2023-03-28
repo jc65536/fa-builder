@@ -18,6 +18,26 @@
       </marker>
     </defs>
   </svg>
+  <form id="trans-config" class="hidden">
+    <h2>Transition config</h2>
+    <p id="mult-warning">
+      Multiple transitions selected
+    </p>
+    <div id="config-inputs">
+      <label for="trans-char">Transition character:</label>
+      <input id="trans-char">
+      <input type="checkbox" id="epsilon-trans">
+      <label for="epsilon-trans">Epsilon transition</label>
+      <fieldset>
+        <legend>Arrow type</legend>
+        <input type="radio" id="line-choice" name="arrow-type" value="line">
+        <label for="line-choice">Line</label>
+        <input type="radio" id="bezier-choice" name="arrow-type" value="bezier">
+        <label for="bezier-choice">Bezier curve</label>
+      </fieldset>
+      <button type="button">Delete</button>
+    </div>
+  </form>
   <div id="add-state" class="statelike">Drag me!</div>
 </body>
 

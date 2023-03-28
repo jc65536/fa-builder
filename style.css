@@ -1,5 +1,6 @@
 :root {
     --fa-stroke: #151515;
+    --fa-sel-stroke: #21ff57;
     --sel-fill: #317fff10;
     --sel-stroke: #317fff;
 }
@@ -30,7 +31,7 @@
 }
 
 .selected {
-    stroke: red;
+    stroke: var(--fa-sel-stroke);
 }
 
 .selection {
@@ -59,4 +60,16 @@
 
 .draggable {
     position: fixed;
+}
+
+.hidden {
+    display: none;
+}
+
+#trans-config:not(.mult-selected) #mult-warning {
+    display: none;
+}
+
+#trans-config.mult-selected #config-inputs {
+    display: none;
 }
