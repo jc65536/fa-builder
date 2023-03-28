@@ -2,6 +2,7 @@ import {
     createSvgElement, screenToSvgCoords, CtrlPoints, setAttributes
 } from "./util.js";
 import * as vec from "./vector.js";
+import * as dragman from "./dragman.js";
 import { stateConfig, epsilonChar } from "./config.js";
 import { DragAddStateCtx, DragCtx, DragEdgeCtx, DragSelectionCtx, DragStateCtx } from "./drag.js";
 
@@ -72,10 +73,8 @@ export const addState = (pos: vec.Vec) => {
     canvas.appendChild(group);
 };
 
-let dragCtx: DragCtx = null;
-
 const startDragSelection = (evt: MouseEvent) => {
-    if (dragCtx !== null || evt.button !== 0)
+    if (dragman.hasContext() || evt.button !== 0)
         return;
 
     const init = screenToSvgCoords([evt.x, evt.y]);
@@ -84,13 +83,13 @@ const startDragSelection = (evt: MouseEvent) => {
     setAttributes(rect, ["x", "y", "width", "height"],
         init.concat([0, 0]).map(x => x.toString()));
 
-    dragCtx = new DragSelectionCtx(init, rect);
+    dragman.setContext(new DragSelectionCtx(init, rect));
 
     canvas.appendChild(rect);
 };
 
 const startDragOnState = (state: State) => (evt: MouseEvent) => {
-    if (dragCtx !== null)
+    if (dragman.hasContext())
         return;
 
     switch (evt.button) {
@@ -98,8 +97,8 @@ const startDragOnState = (state: State) => (evt: MouseEvent) => {
             const trans = canvas.createSVGTransform();
             trans.setTranslate(0, 0);
 
-            dragCtx = new DragStateCtx(state, screenToSvgCoords([evt.x, evt.y]),
-                trans);
+            dragman.setContext(new DragStateCtx(state,
+                screenToSvgCoords([evt.x, evt.y]), trans));
 
             state.svgElem.transform.baseVal.appendItem(trans);
             break;
@@ -108,13 +107,13 @@ const startDragOnState = (state: State) => (evt: MouseEvent) => {
             const path = createSvgElement("path");
             path.classList.add("edge");
 
-            dragCtx = new DragEdgeCtx({
+            dragman.setContext(new DragEdgeCtx({
                 from: state,
                 transChar: "",
                 to: state,
                 svgElem: path,
                 ctrlPoints: null
-            });
+            }));
 
             canvas.appendChild(path);
             break;
@@ -128,20 +127,14 @@ const startDragAddState = (evt: MouseEvent) => {
     circle.style.left = `${rect.x}px`;
     circle.style.top = `${rect.y}px`;
     const offset = vec.sub([evt.x, evt.y])([rect.x, rect.y]);
-    dragCtx = new DragAddStateCtx(offset, circle);
+    dragman.setContext(new DragAddStateCtx(offset, circle));
     addStateElem.appendChild(circle);
 }
 
 addStateElem.addEventListener("mousedown", startDragAddState);
 
-document.addEventListener("mousemove", (evt: MouseEvent) =>
-    dragCtx?.handleDrag(evt));
-
-document.addEventListener("mouseup", (evt: MouseEvent) => {
-    dragCtx?.handleDrop(evt);
-    dragCtx = null;
-});
-
 canvas.addEventListener("contextmenu", evt => evt.preventDefault());
-
 canvas.addEventListener("mousedown", startDragSelection);
+
+document.addEventListener("mousemove", dragman.handleDrag);
+document.addEventListener("mouseup", dragman.handleDrop);
