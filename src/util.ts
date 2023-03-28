@@ -125,7 +125,28 @@ const solveCubic = (a: number, b: number, c: number, d: number) => {
         (cmpx.add(cmpx.from(b), z, cmpx.scale(delta0)(cmpx.inv(z)))))
         .filter(z => Math.abs(Math.sin(z.a)) < 1e-9)
         .map(z => Math.sign(Math.cos(z.a)) * z.r);
-}
+};
+
+const solveQuadratic = (a: number, b: number, c: number) => {
+    const disc = Math.pow(b, 2) - 4 * a * c;
+
+    if (disc < 0) {
+        return [];
+    } else if (disc === 0) {
+        // Double root not actually needed for bezierIntersectsRect
+        const doubleRoot = -b / (2 * a);
+        return [doubleRoot, doubleRoot];
+    } else {
+        return [-1, 1].map(x => (-b + x * Math.sqrt(disc)) / (2 * a));
+    }
+};
+
+const solvePolynomial = (a: number, b: number, c: number, d: number) =>
+    ifelse(a === 0)
+        (ifelse(b === 0)
+            ([-d / c])
+            (solveQuadratic(b, c, d)))
+        (solveCubic(a, b, c, d));
 
 const bezierCoef = (x1: number, x2: number, x3: number, x4: number) =>
     [x4 - 3 * x3 + 3 * x2 - x1,
@@ -174,14 +195,14 @@ export const bezierIntersectsRect = ([x1, y1]: Vec, [x2, y2]: Vec,
 
     const [ax, bx, cx, dx] = bezierCoef(x1, x2, x3, x4);
 
-    const xints = solveCubic(ax, bx, cx, dx - l)
-        .concat(solveCubic(ax, bx, cx, dx - r))
+    const xints = solvePolynomial(ax, bx, cx, dx - l)
+        .concat(solvePolynomial(ax, bx, cx, dx - r))
         .sort(numOrd);
 
     const [ay, by, cy, dy] = bezierCoef(y1, y2, y3, y4);
 
-    const yints = solveCubic(ay, by, cy, dy - t)
-        .concat(solveCubic(ay, by, cy, dy - b))
+    const yints = solvePolynomial(ay, by, cy, dy - t)
+        .concat(solvePolynomial(ay, by, cy, dy - b))
         .sort(numOrd);
 
     return intsOverlap(trimInts(xints), trimInts(yints));
