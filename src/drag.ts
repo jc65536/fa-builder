@@ -1,8 +1,9 @@
 import { epsilonChar, stateConfig } from "./config.js";
 import { addState, canvas, Edge, State, states, edges } from "./main.js";
+import * as transConfig from "./trans-config.js"
 import {
-    Path, setPathCmd, applyCTM, closestPoints, ifelse, side, newStr,
-    setAttributes, screenToSvgCoords, numOrd, lineIntersectsRect, bezierIntersectsRect
+    Path, setPathCmd, applyCTM, closestPoints, ifelse, side, setAttributes,
+    screenToSvgCoords, lineIntersectsRect, bezierIntersectsRect
 } from "./util.js";
 import * as vec from "./vector.js";
 
@@ -212,20 +213,22 @@ export class DragSelectionCtx extends DragCtx {
     }
 
     handleDrop(evt: MouseEvent): void {
-        this.initTransConfigForm();
+        this.showTransConfigForm();
         this.rect.remove();
     }
 
-    initTransConfigForm(): void {
+    showTransConfigForm() {
         if (this.selected.size === 0)
             return;
 
-        if (this.selected.size > 1) {
-            return;
+        transConfig.form.classList.remove("hidden");
+
+        if (this.selected.size === 1) {
+            const [selectedEdge] = this.selected.values();
+            transConfig.setEdge(selectedEdge);
+        } else {
+            transConfig.form.classList.add("mult-selected");
         }
-
-        const [selected] = [...this.selected.values()];
-
     }
 }
 

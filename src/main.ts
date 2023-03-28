@@ -3,6 +3,7 @@ import {
 } from "./util.js";
 import * as vec from "./vector.js";
 import * as dragman from "./dragman.js";
+import * as transConfig from "./trans-config.js"
 import { stateConfig, epsilonChar } from "./config.js";
 import { DragAddStateCtx, DragCtx, DragEdgeCtx, DragSelectionCtx, DragStateCtx } from "./drag.js";
 
@@ -82,6 +83,13 @@ const startDragSelection = (evt: MouseEvent) => {
     rect.classList.add("selection");
     setAttributes(rect, ["x", "y", "width", "height"],
         init.concat([0, 0]).map(x => x.toString()));
+
+    canvas.querySelectorAll(".edge.selected")
+        .forEach(e => e.classList.remove("selected"));
+    transConfig.form.classList.remove("mult-selected");
+    transConfig.form.classList.add("hidden");
+
+    transConfig.unsetEdge();
 
     dragman.setContext(new DragSelectionCtx(init, rect));
 
