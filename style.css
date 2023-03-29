@@ -6,10 +6,25 @@
     --handle-fill: #cd34ff;
 }
 
+/* App layout */
+
+#app-container {
+    display: grid;
+    width: 100%;
+    grid-template-columns: 1fr max(16rem, min(25%, 24rem));
+    grid-template-rows: max-content 1fr max-content;
+    grid-template-areas:
+        "canvas   drag-items "
+        "canvas   config-menu"
+        "analysis analysis   ";
+    gap: 1rem 1rem;
+}
+
 #canvas {
     border: 1px solid black;
-    height: 60vh;
-    width: 75%;
+    grid-area: canvas;
+    height: 40rem;
+    width: 100%;
 }
 
 .state {
@@ -48,6 +63,7 @@
     text-align: center;
     cursor: move;
     user-select: none;
+    grid-area: drag-items;
 }
 
 .statelike {
@@ -67,16 +83,20 @@
     display: none;
 }
 
+#config-menu-container {
+    grid-area: config-menu;
+    width: 100%;
+}
+
 #trans-config:not(.mult-selected) #mult-warning {
     display: none;
 }
 
-#trans-config.mult-selected #config-inputs {
+#trans-config.mult-selected #trans-config-inputs {
     display: none;
 }
 
-#line-choice:not(:checked)~#shortest-line,
-#line-choice:not(:checked)~label[for=shortest-line] {
+#line-choice:not(:checked)~#line-options {
     display: none;
 }
 
@@ -90,4 +110,8 @@
     font: 1.25rem sans-serif;
     color: var(--fa-stroke);
     user-select: none;
+}
+
+:not(.hidden)~#config-menu-hint {
+    display: none;
 }

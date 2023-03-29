@@ -176,3 +176,5 @@ inputs.delete.addEventListener("click", deleteEdge);
 
 inputs.arrowType.bezierChoice.addEventListener("change", selectBezierChoice);
 inputs.arrowType.lineChoice.addEventListener("change", selectLineChoice);
+
+form.addEventListener("submit", e => e.preventDefault());
