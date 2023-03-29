@@ -13,8 +13,6 @@ import { PathControls } from "./path-controls.js";
 
 export const canvas = document.querySelector<SVGSVGElement>("#canvas");
 const addStateElem = document.querySelector<HTMLButtonElement>("#add-state");
-export const textPathContainer =
-    canvas.querySelector<SVGTextElement>("#textpath-container");
 
 export type State = {
     name: string,

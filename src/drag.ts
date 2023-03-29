@@ -1,5 +1,5 @@
-import { stateConfig } from "./config.js";
-import { addState, canvas, Edge, State, states, edges, textPathContainer } from "./main.js";
+import { edgeConfig, stateConfig } from "./config.js";
+import { addState, canvas, Edge, State, states, edges } from "./main.js";
 import {
     BezierControls, LineControls, ShortestLineControls
 } from "./path-controls.js";
@@ -93,6 +93,11 @@ export class DragEdgeCtx extends DragCtx {
         path.classList.add("edge");
         path.id = `edge-${uniqueStr()}`;
         canvas.appendChild(path);
+
+        const textPathContainer = createSvgElement("text");
+        textPathContainer.setAttribute("dy", edgeConfig.textVertOffset.toString());
+        textPathContainer.classList.add("trans-char-container");
+        canvas.appendChild(textPathContainer);
 
         const textPath = createSvgElement("textPath");
         textPath.setAttribute("startOffset", "50%");

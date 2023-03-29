@@ -85,7 +85,7 @@
     cursor: crosshair;
 }
 
-#textpath-container {
+.trans-char-container {
     text-anchor: middle;
     font: 1.25rem sans-serif;
     color: var(--fa-stroke);
