@@ -1,5 +1,5 @@
 import * as vec from "./vector.js";
-import * as dragman from "./dragman.js";
+import * as dragman from "./drag-manager.js";
 import { ctrlHandleConfig, stateConfig } from "./config.js";
 import { canvas, Edge } from "./main.js";
 import {

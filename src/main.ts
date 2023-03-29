@@ -1,5 +1,5 @@
 import * as vec from "./vector.js";
-import * as dragman from "./dragman.js";
+import * as dragMan from "./drag-manager.js";
 import * as transConfig from "./trans-config.js";
 import { Vec } from "./vector.js";
 import { stateConfig } from "./config.js";
@@ -79,7 +79,7 @@ export const addState = (pos: Vec) => {
 };
 
 const startDragSelection = (evt: MouseEvent) => {
-    if (dragman.hasContext() || evt.button !== 0)
+    if (dragMan.hasContext() || evt.button !== 0)
         return;
 
     const init = screenToSvgCoords([evt.x, evt.y]);
@@ -90,13 +90,13 @@ const startDragSelection = (evt: MouseEvent) => {
 
     transConfig.hideForm();
 
-    dragman.setContext(new DragSelectionCtx(init, rect));
+    dragMan.setContext(new DragSelectionCtx(init, rect));
 
     canvas.appendChild(rect);
 };
 
 const startDragOnState = (state: State) => (evt: MouseEvent) => {
-    if (dragman.hasContext())
+    if (dragMan.hasContext())
         return;
 
     switch (evt.button) {
@@ -104,7 +104,7 @@ const startDragOnState = (state: State) => (evt: MouseEvent) => {
             const trans = canvas.createSVGTransform();
             trans.setTranslate(0, 0);
 
-            dragman.setContext(new DragStateCtx(state,
+            dragMan.setContext(new DragStateCtx(state,
                 screenToSvgCoords([evt.x, evt.y]), trans));
 
             state.svgElem.transform.baseVal.appendItem(trans);
@@ -114,7 +114,7 @@ const startDragOnState = (state: State) => (evt: MouseEvent) => {
             const path = createSvgElement("path");
             path.classList.add("edge");
 
-            dragman.setContext(new DragEdgeCtx({
+            dragMan.setContext(new DragEdgeCtx({
                 startState: state,
                 transChar: "",
                 endState: state,
@@ -134,7 +134,7 @@ const startDragAddState = (evt: MouseEvent) => {
     circle.style.left = `${rect.x}px`;
     circle.style.top = `${rect.y}px`;
     const offset = vec.sub([evt.x, evt.y])([rect.x, rect.y]);
-    dragman.setContext(new DragAddStateCtx(offset, circle));
+    dragMan.setContext(new DragAddStateCtx(offset, circle));
     addStateElem.appendChild(circle);
 }
 
@@ -143,5 +143,5 @@ addStateElem.addEventListener("mousedown", startDragAddState);
 canvas.addEventListener("contextmenu", evt => evt.preventDefault());
 canvas.addEventListener("mousedown", startDragSelection);
 
-document.addEventListener("mousemove", dragman.handleDrag);
-document.addEventListener("mouseup", dragman.handleDrop);
+document.addEventListener("mousemove", dragMan.handleDrag);
+document.addEventListener("mouseup", dragMan.handleDrop);
