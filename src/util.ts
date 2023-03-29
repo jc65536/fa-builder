@@ -63,11 +63,11 @@ const solveCubic = (a: number, b: number, c: number, d: number) => {
         if (delta0 === 0) {
             // Only one triple root needed for bezierIntersectsRect
             const tripleRoot = -b / (3 * a);
-            return [tripleRoot, tripleRoot, tripleRoot];
+            return [tripleRoot /* , tripleRoot, tripleRoot */ ];
         } else {
             // Double root not actually needed for bezierIntersectsRect
-            const doubleRoot = (9 * a * d - b * c) / (2 * delta0);
-            return [doubleRoot, doubleRoot,
+            // const doubleRoot = (9 * a * d - b * c) / (2 * delta0);
+            return [ /* doubleRoot, doubleRoot, */
                 (4 * a * b * c - 9 * Math.pow(a, 2) * d - Math.pow(b, 3)) / (a * delta0)]
         }
     }
@@ -94,8 +94,8 @@ const solveQuadratic = (a: number, b: number, c: number) => {
         return [];
     } else if (disc === 0) {
         // Double root not actually needed for bezierIntersectsRect
-        const doubleRoot = -b / (2 * a);
-        return [doubleRoot, doubleRoot];
+        // const doubleRoot = -b / (2 * a);
+        return [ /* doubleRoot, doubleRoot */ ];
     } else {
         return [-1, 1].map(x => (-b + x * Math.sqrt(disc)) / (2 * a));
     }

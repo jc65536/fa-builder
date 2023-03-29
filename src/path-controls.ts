@@ -116,18 +116,18 @@ export class BezierControls extends PathControls {
         });
 
         const { startState, endState } = edge;
-        const oldCp = edge.controls.cp;
 
         if (startState === endState) {
             this.cp = {
                 startStatePos: startState.pos,
-                startAngle: oldCp.startAngle,
+                startAngle: Math.PI / 3,
                 startCtrlRel: [0, -1.5 * stateConfig.radius],
                 endCtrlRel: [0, -1.5 * stateConfig.radius],
-                endAngle: oldCp.endAngle,
+                endAngle: 2 * Math.PI / 3,
                 endStatePos: endState.pos
             };
         } else {
+            const oldCp = edge.controls.cp;
             this.cp = {
                 startStatePos: startState.pos,
                 startAngle: oldCp.startAngle,

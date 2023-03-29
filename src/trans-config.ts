@@ -4,6 +4,7 @@ import {
     BezierControls, LineControls,
     ShortestLineControls
 } from "./path-controls.js";
+import { ifelse } from "./util.js";
 
 export const form = document.querySelector<HTMLFormElement>("#trans-config");
 
@@ -118,12 +119,14 @@ const deleteEdge = (evt: Event) => {
     allSelected.forEach(edge => {
         edge.startState.outEdges =
             edge.startState.outEdges.filter(e => e !== edge);
+
         edge.endState.inEdges =
             edge.endState.inEdges.filter(e => e !== edge);
 
         edge.svgElem.remove();
         edges.delete(edge);
     });
+
     hideForm();
 };
 
@@ -131,15 +134,11 @@ const changeShortestLine = (evt: Event) => {
     if (selectedEdge === null)
         return;
 
-    if (inputs.shortestLine.checked) {
-        selectedEdge.controls.hide();
-        selectedEdge.controls = new ShortestLineControls(selectedEdge);
-        selectedEdge.controls.show();
-    } else {
-        selectedEdge.controls.hide();
-        selectedEdge.controls = new LineControls(selectedEdge);
-        selectedEdge.controls.show();
-    }
+    selectedEdge.controls.hide();
+    const controlsType = inputs.shortestLine.checked ?
+        ShortestLineControls : LineControls;
+    selectedEdge.controls = new controlsType(selectedEdge);
+    selectedEdge.controls.show();
 };
 
 const selectLineChoice = (evt: Event) => {
@@ -147,8 +146,8 @@ const selectLineChoice = (evt: Event) => {
         return;
 
     selectedEdge.controls.hide();
-    inputs.shortestLine.checked = true;
-    selectedEdge.controls = new ShortestLineControls(selectedEdge);
+    inputs.shortestLine.checked = false;
+    selectedEdge.controls = new LineControls(selectedEdge);
     selectedEdge.controls.show();
 };
 

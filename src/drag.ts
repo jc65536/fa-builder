@@ -56,17 +56,16 @@ export class DragEdgeCtx extends DragCtx {
 
     handleDrag(evt: MouseEvent): void {
         const mousePos = screenToSvgCoords([evt.x, evt.y]);
-        const to = [...states].find(state =>
+        const endState = [...states].find(state =>
             vec.dist(mousePos, state.pos) < stateConfig.radius);
 
-        this.edge.endState = to;
+        this.edge.endState = endState;
 
         const angle = vec.angleBetweenScreenVec(this.edge.startState.pos)
-            (this.edge.endState.pos);
+            (endState === undefined ? mousePos : endState.pos);
         const radius = vec.polar(stateConfig.radius, angle);
         const start = vec.add(this.edge.startState.pos)(radius);
-        const end = to === undefined ? mousePos :
-            vec.sub(this.edge.endState.pos)(radius);
+        const end = endState === undefined ? mousePos : vec.sub(endState.pos)(radius);
         setLineCmd(this.edge.svgElem, { start, end });
     }
 
