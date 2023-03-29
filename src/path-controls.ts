@@ -1,11 +1,10 @@
+import * as vec from "./vector.js";
+import * as dragman from "./dragman.js";
 import { ctrlHandleConfig, stateConfig } from "./config.js";
 import { canvas, Edge } from "./main.js";
 import {
-    closestPoints, createSvgElement, setAttributes, setBezierCmd,
-    setLineCmd
+    createSvgElement, setAttributes, setBezierCmd, setLineCmd
 } from "./util.js";
-import * as vec from "./vector.js";
-import * as dragman from "./dragman.js";
 import { Vec } from "./vector.js";
 import { DragCtrlHandleCtx } from "./drag.js";
 
@@ -38,6 +37,14 @@ const createHandle = (dragCallback: (mousePos: Vec) => void) => {
 
 export abstract class PathControls {
     path: SVGPathElement;
+
+    cp: {
+        startStatePos: Vec;
+        startAngle: number;
+        endAngle: number;
+        endStatePos: Vec;
+    };
+
     handles: { [key: string]: SVGCircleElement };
 
     constructor(path: SVGPathElement,
@@ -109,25 +116,24 @@ export class BezierControls extends PathControls {
         });
 
         const { startState, endState } = edge;
+        const oldCp = edge.controls.cp;
 
         if (startState === endState) {
             this.cp = {
                 startStatePos: startState.pos,
-                startAngle: Math.PI / 3,
+                startAngle: oldCp.startAngle,
                 startCtrlRel: [0, -1.5 * stateConfig.radius],
                 endCtrlRel: [0, -1.5 * stateConfig.radius],
-                endAngle: 2 * Math.PI / 3,
+                endAngle: oldCp.endAngle,
                 endStatePos: endState.pos
             };
         } else {
-            const angle = vec.angleBetweenScreenVec(startState.pos)(endState.pos);
-
             this.cp = {
                 startStatePos: startState.pos,
-                startAngle: angle,
-                startCtrlRel: vec.polar(stateConfig.radius * 1.5, angle),
-                endCtrlRel: vec.polar(stateConfig.radius * 1.5, angle + Math.PI),
-                endAngle: angle + Math.PI,
+                startAngle: oldCp.startAngle,
+                startCtrlRel: vec.polar(stateConfig.radius * 1.5, oldCp.startAngle),
+                endCtrlRel: vec.polar(stateConfig.radius * 1.5, oldCp.endAngle),
+                endAngle: oldCp.endAngle,
                 endStatePos: endState.pos
             };
         }
@@ -212,13 +218,12 @@ export class LineControls extends PathControls {
         });
 
         const { startState, endState } = edge;
-
-        const angle = vec.angleBetweenScreenVec(startState.pos)(endState.pos);
+        const oldCp = edge.controls.cp;
 
         this.cp = {
             startStatePos: startState.pos,
-            startAngle: angle,
-            endAngle: angle + Math.PI,
+            startAngle: oldCp.startAngle,
+            endAngle: oldCp.endAngle,
             endStatePos: endState.pos
         };
 
@@ -228,14 +233,14 @@ export class LineControls extends PathControls {
         setLineCmd(this.path, absCp);
     }
 
-    updateStart(pos: vec.Vec): void {
+    updateStart(pos: Vec): void {
         this.cp.startStatePos = pos;
         const absCp = this.calcAbsCtrlPts();
         this.updateStartHandle(absCp);
         setLineCmd(this.path, absCp);
     }
 
-    updateEnd(pos: vec.Vec): void {
+    updateEnd(pos: Vec): void {
         this.cp.endStatePos = pos;
         const absCp = this.calcAbsCtrlPts();
         this.updateEndHandle(absCp);
@@ -262,28 +267,39 @@ export class LineControls extends PathControls {
 }
 
 export class ShortestLineControls extends PathControls {
-    startStatePos: Vec;
-    endStatePos: Vec;
-
     constructor(edge: Edge) {
         super(edge.svgElem, {});
-        this.startStatePos = edge.startState.pos;
-        this.endStatePos = edge.endState.pos;
+
+        const {startState, endState} = edge;
+
+        const angle = vec.angleBetweenScreenVec(startState.pos)(endState.pos);
+
+        this.cp = {
+            startStatePos: startState.pos,
+            startAngle: angle,
+            endAngle: angle + Math.PI,
+            endStatePos: endState.pos
+        }
+
         this.updatePath();
     }
 
-    updateStart(pos: vec.Vec): void {
-        this.startStatePos = pos;
+    updateStart(pos: Vec): void {
+        this.cp.startStatePos = pos;
         this.updatePath();
     }
 
-    updateEnd(pos: vec.Vec): void {
-        this.endStatePos = pos;
+    updateEnd(pos: Vec): void {
+        this.cp.endStatePos = pos;
         this.updatePath();
     }
 
     calcAbsCtrlPts(): LineCtrlPts {
-        const [start, end] = closestPoints(this.startStatePos, this.endStatePos);
+        const angle = vec.angleBetweenScreenVec(this.cp.startStatePos)
+            (this.cp.endStatePos);
+        const radius = vec.polar(stateConfig.radius, angle);
+        const start = vec.add(this.cp.startStatePos)(radius);
+        const end = vec.sub(this.cp.endStatePos)(radius);
         return { start, end };
     }
 

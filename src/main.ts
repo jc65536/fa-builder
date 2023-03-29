@@ -1,6 +1,7 @@
 import * as vec from "./vector.js";
 import * as dragman from "./dragman.js";
-import * as transConfig from "./trans-config.js"
+import * as transConfig from "./trans-config.js";
+import { Vec } from "./vector.js";
 import { stateConfig } from "./config.js";
 import {
     createSvgElement, screenToSvgCoords, setAttributes
@@ -17,7 +18,7 @@ export type State = {
     name: string,
     accepting: boolean,
     svgElem: SVGGraphicsElement,
-    pos: vec.Vec,
+    pos: Vec,
     inEdges: Edge[],
     outEdges: Edge[]
 };
@@ -50,7 +51,7 @@ const toggleAccept = (state: State) => () => {
     }
 };
 
-export const addState = (pos: vec.Vec) => {
+export const addState = (pos: Vec) => {
     const circle = createSvgElement("circle");
     circle.setAttribute("r", stateConfig.radius.toString());
 

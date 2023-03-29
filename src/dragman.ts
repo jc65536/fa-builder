@@ -1,4 +1,4 @@
-import { DragCtx } from "./drag";
+import { DragCtx } from "./drag.js";
 
 let dragCtx: DragCtx = null;
 

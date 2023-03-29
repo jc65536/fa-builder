@@ -1,6 +1,4 @@
-import * as vec from "./vector.js";
 import * as cmpx from "./complex.js";
-import { stateConfig } from "./config.js";
 import { canvas } from "./main.js";
 import { BezierCtrlPts, LineCtrlPts } from "./path-controls.js";
 import { Vec } from "./vector.js";
@@ -8,18 +6,11 @@ import { Vec } from "./vector.js";
 export const createSvgElement = <T extends keyof SVGElementTagNameMap>(name: T) =>
     document.createElementNS<T>("http://www.w3.org/2000/svg", name);
 
-export const screenToSvgCoords = (pos: Vec): Vec =>
+export const screenToSvgCoords = (pos: Vec) =>
     applyCTM(pos, canvas.getScreenCTM().inverse());
 
 export const applyCTM = (pos: Vec, ctm: DOMMatrix): Vec =>
     [ctm.a * pos[0] + ctm.e, ctm.d * pos[1] + ctm.f];
-
-export const closestPoints = (c1: Vec, c2: Vec): [Vec, Vec] => {
-    const r = stateConfig.radius;
-    const a = vec.angleBetweenScreenVec(c1)(c2);
-    const offset = vec.polar(r, a);
-    return [vec.add(c1)(offset), vec.sub(c2)(offset)];
-};
 
 export const setAttributes = (elem: Element, attrs: string[], vals: string[]) =>
     attrs.forEach((attr, i) => elem.setAttribute(attr, vals[i]));
@@ -31,8 +22,6 @@ export const side = (a1: number) => (a2: number) =>
     Math.sin(a2 - a1) >= 0 ? 1 : -1;
 
 export const numOrd = (x: number, y: number) => x - y;
-
-export enum Path { Line, Bezier }
 
 export const setLineCmd = (path: SVGPathElement, cp: LineCtrlPts) =>
     path.setAttribute("d", `M ${cp.start.join(",")} L ${cp.end.join(",")}`);
@@ -112,12 +101,16 @@ const solveQuadratic = (a: number, b: number, c: number) => {
     }
 };
 
-const solvePolynomial = (a: number, b: number, c: number, d: number) =>
-    ifelse(a === 0)
-        (ifelse(b === 0)
-            ([-d / c])
-            (solveQuadratic(b, c, d)))
-        (solveCubic(a, b, c, d));
+const solvePolynomial = (a: number, b: number, c: number, d: number) => {
+    if (a === 0) {
+        if (b === 0)
+            return [-d / c];
+        else
+            return solveQuadratic(b, c, d);
+    } else {
+        return solveCubic(a, b, c, d);
+    }
+}
 
 const bezierCoef = (x1: number, x2: number, x3: number, x4: number) =>
     [x4 - 3 * x3 + 3 * x2 - x1,

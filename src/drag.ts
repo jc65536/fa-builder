@@ -3,10 +3,10 @@ import { addState, canvas, Edge, State, states, edges } from "./main.js";
 import {
     BezierControls, LineControls, ShortestLineControls
 } from "./path-controls.js";
-import * as transConfig from "./trans-config.js"
+import * as transConfig from "./trans-config.js";
 import {
-    applyCTM, closestPoints, ifelse, setAttributes, screenToSvgCoords,
-    lineIntersectsRect, bezierIntersectsRect, setLineCmd
+    applyCTM, ifelse, setAttributes, screenToSvgCoords, lineIntersectsRect,
+    bezierIntersectsRect, setLineCmd
 } from "./util.js";
 import * as vec from "./vector.js";
 import { Vec } from "./vector.js";
@@ -18,10 +18,10 @@ export abstract class DragCtx {
 
 export class DragStateCtx extends DragCtx {
     state: State;
-    init: vec.Vec;
+    init: Vec;
     trans: SVGTransform;
 
-    constructor(state: State, init: vec.Vec, trans: SVGTransform) {
+    constructor(state: State, init: Vec, trans: SVGTransform) {
         super();
         this.state = state;
         this.init = init;
@@ -34,7 +34,7 @@ export class DragStateCtx extends DragCtx {
         this.trans.setTranslate(tx, ty);
 
         const addTrans = vec.add([tx, ty]);
-        const newPos: vec.Vec = addTrans(this.state.pos);
+        const newPos: Vec = addTrans(this.state.pos);
 
         this.state.outEdges.forEach(edge => edge.controls.updateStart(newPos));
         this.state.inEdges.forEach(edge => edge.controls.updateEnd(newPos));
@@ -61,9 +61,13 @@ export class DragEdgeCtx extends DragCtx {
 
         this.edge.endState = to;
 
-        const cursorPosOr = ifelse(to === undefined)(mousePos);
-        const [start, end] = closestPoints(this.edge.startState.pos, cursorPosOr(to?.pos))
-        setLineCmd(this.edge.svgElem, { start, end: cursorPosOr(end) });
+        const angle = vec.angleBetweenScreenVec(this.edge.startState.pos)
+            (this.edge.endState.pos);
+        const radius = vec.polar(stateConfig.radius, angle);
+        const start = vec.add(this.edge.startState.pos)(radius);
+        const end = to === undefined ? mousePos :
+            vec.sub(this.edge.endState.pos)(radius);
+        setLineCmd(this.edge.svgElem, { start, end });
     }
 
     handleDrop(evt: MouseEvent): void {
@@ -93,11 +97,11 @@ export class DragEdgeCtx extends DragCtx {
 }
 
 export class DragSelectionCtx extends DragCtx {
-    init: vec.Vec;
+    init: Vec;
     rect: SVGRectElement;
     selected: Set<Edge>;
 
-    constructor(init: vec.Vec, rect: SVGRectElement) {
+    constructor(init: Vec, rect: SVGRectElement) {
         super();
         this.init = init;
         this.rect = rect;
@@ -116,8 +120,8 @@ export class DragSelectionCtx extends DragCtx {
 
     handleDrag(evt: MouseEvent): void {
         const mousePos = screenToSvgCoords([evt.x, evt.y]);
-        const topLeft = this.init.map((x, i) => Math.min(x, mousePos[i])) as vec.Vec;
-        const dim = this.init.map((x, i) => Math.max(x, mousePos[i]) - topLeft[i]) as vec.Vec;
+        const topLeft = this.init.map((x, i) => Math.min(x, mousePos[i])) as Vec;
+        const dim = this.init.map((x, i) => Math.max(x, mousePos[i]) - topLeft[i]) as Vec;
         setAttributes(this.rect, ["x", "y", "width", "height"],
             topLeft.concat(dim).map(x => x.toString()));
 
@@ -144,10 +148,10 @@ export class DragSelectionCtx extends DragCtx {
 }
 
 export class DragAddStateCtx extends DragCtx {
-    offset: vec.Vec;
+    offset: Vec;
     circle: HTMLElement;
 
-    constructor(offset: vec.Vec, circle: HTMLElement) {
+    constructor(offset: Vec, circle: HTMLElement) {
         super();
         this.offset = offset;
         this.circle = circle;
