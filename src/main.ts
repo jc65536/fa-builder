@@ -13,6 +13,8 @@ import { PathControls } from "./path-controls.js";
 
 export const canvas = document.querySelector<SVGSVGElement>("#canvas");
 const addStateElem = document.querySelector<HTMLButtonElement>("#add-state");
+export const textPathContainer =
+    canvas.querySelector<SVGTextElement>("#textpath-container");
 
 export type State = {
     name: string,
@@ -29,7 +31,8 @@ export type Edge = {
     startState: State,
     transChar: string,
     endState: State,
-    svgElem: SVGPathElement,
+    pathElem: SVGPathElement,
+    textElem: SVGTextPathElement,
     controls: PathControls
 };
 
@@ -118,7 +121,8 @@ const startDragOnState = (state: State) => (evt: MouseEvent) => {
                 startState: state,
                 transChar: "",
                 endState: state,
-                svgElem: path,
+                pathElem: path,
+                textElem: null,
                 controls: null
             }));
 

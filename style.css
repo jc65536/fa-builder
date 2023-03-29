@@ -84,3 +84,10 @@
     fill: var(--handle-fill);
     cursor: crosshair;
 }
+
+#textpath-container {
+    text-anchor: middle;
+    font: 1.25rem sans-serif;
+    color: var(--fa-stroke);
+    user-select: none;
+}

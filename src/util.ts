@@ -176,4 +176,4 @@ export const bezierIntersectsRect = ([x1, y1]: Vec, [x2, y2]: Vec,
 
 let strCnt = 0;
 
-export const newStr = () => (++strCnt).toString();
+export const uniqueStr = () => (++strCnt).toString();

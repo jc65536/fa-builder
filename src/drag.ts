@@ -1,12 +1,12 @@
 import { stateConfig } from "./config.js";
-import { addState, canvas, Edge, State, states, edges } from "./main.js";
+import { addState, canvas, Edge, State, states, edges, textPathContainer } from "./main.js";
 import {
     BezierControls, LineControls, ShortestLineControls
 } from "./path-controls.js";
 import * as transConfig from "./trans-config.js";
 import {
     applyCTM, ifelse, setAttributes, screenToSvgCoords, lineIntersectsRect,
-    bezierIntersectsRect, setLineCmd
+    bezierIntersectsRect, setLineCmd, uniqueStr, createSvgElement
 } from "./util.js";
 import * as vec from "./vector.js";
 import { Vec } from "./vector.js";
@@ -66,12 +66,12 @@ export class DragEdgeCtx extends DragCtx {
         const radius = vec.polar(stateConfig.radius, angle);
         const start = vec.add(this.edge.startState.pos)(radius);
         const end = endState === undefined ? mousePos : vec.sub(endState.pos)(radius);
-        setLineCmd(this.edge.svgElem, { start, end });
+        setLineCmd(this.edge.pathElem, { start, end });
     }
 
     handleDrop(evt: MouseEvent): void {
         const edge = this.edge;
-        const path = edge.svgElem;
+        const path = edge.pathElem;
 
         if (edge.endState === undefined) {
             path.remove();
@@ -91,7 +91,14 @@ export class DragEdgeCtx extends DragCtx {
         edge.endState.inEdges.push(edge);
 
         path.classList.add("edge");
+        path.id = `edge-${uniqueStr()}`;
         canvas.appendChild(path);
+
+        const textPath = createSvgElement("textPath");
+        textPath.setAttribute("startOffset", "50%");
+        textPath.setAttribute("href", `#${path.id}`);
+        textPathContainer.appendChild(textPath);
+        edge.textElem = textPath;
     }
 }
 
@@ -109,12 +116,12 @@ export class DragSelectionCtx extends DragCtx {
 
     select = (edge: Edge) => {
         this.selected.add(edge);
-        edge.svgElem.classList.add("selected");
+        edge.pathElem.classList.add("selected");
     };
 
     deselect = (edge: Edge) => {
         this.selected.delete(edge);
-        edge.svgElem.classList.remove("selected");
+        edge.pathElem.classList.remove("selected");
     };
 
     handleDrag(evt: MouseEvent): void {
@@ -182,5 +189,6 @@ export class DragCtrlHandleCtx extends DragCtx {
     }
 
     handleDrop(evt: MouseEvent): void {
+        this.handleDrag(evt);
     }
 }

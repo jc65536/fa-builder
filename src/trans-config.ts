@@ -95,6 +95,8 @@ export const inputTransChar = (evt: Event) => {
         transChar.disabled = true;
         epsilonTrans.checked = true;
     }
+
+    selectedEdge.textElem.textContent = transChar.value;
 }
 
 export const changeEpsilonTrans = (evt: Event) => {
@@ -104,10 +106,16 @@ export const changeEpsilonTrans = (evt: Event) => {
     const { transChar, epsilonTrans } = inputs;
 
     if (epsilonTrans.checked) {
-        selectedEdge.transChar = transChar.value = epsilonChar;
+        selectedEdge.textElem.textContent
+            = selectedEdge.transChar
+            = transChar.value
+            = epsilonChar;
         transChar.disabled = true;
     } else {
-        selectedEdge.transChar = transChar.value = "";
+        selectedEdge.textElem.textContent
+            = selectedEdge.transChar
+            = transChar.value
+            = "";
         transChar.disabled = false;
     }
 }
@@ -123,7 +131,8 @@ const deleteEdge = (evt: Event) => {
         edge.endState.inEdges =
             edge.endState.inEdges.filter(e => e !== edge);
 
-        edge.svgElem.remove();
+        edge.pathElem.remove();
+        edge.textElem.remove();
         edges.delete(edge);
     });
 

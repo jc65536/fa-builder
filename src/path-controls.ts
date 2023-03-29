@@ -84,7 +84,7 @@ export class BezierControls extends PathControls {
     };
 
     constructor(edge: Edge) {
-        super(edge.svgElem, {
+        super(edge.pathElem, {
             startHandle: createHandle(mousePos => {
                 const angle = vec.atanScreenVec(vec.sub(mousePos)(this.cp.startStatePos));
                 this.cp.startAngle = angle;
@@ -200,7 +200,7 @@ export class LineControls extends PathControls {
     }
 
     constructor(edge: Edge) {
-        super(edge.svgElem, {
+        super(edge.pathElem, {
             startHandle: createHandle(mousePos => {
                 const angle = vec.atanScreenVec(vec.sub(mousePos)(this.cp.startStatePos));
                 this.cp.startAngle = angle;
@@ -268,7 +268,7 @@ export class LineControls extends PathControls {
 
 export class ShortestLineControls extends PathControls {
     constructor(edge: Edge) {
-        super(edge.svgElem, {});
+        super(edge.pathElem, {});
 
         const {startState, endState} = edge;
 
