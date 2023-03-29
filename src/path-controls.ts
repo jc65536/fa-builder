@@ -1,24 +1,27 @@
 import { ctrlHandleConfig, stateConfig } from "./config.js";
-import { canvas, State } from "./main.js";
-import { closestPoints, createSvgElement, Path, setAttributes, setBezierCmd, setLineCmd } from "./util.js";
+import { canvas, Edge } from "./main.js";
+import {
+    closestPoints, createSvgElement, setAttributes, setBezierCmd,
+    setLineCmd
+} from "./util.js";
 import * as vec from "./vector.js";
 import * as dragman from "./dragman.js";
 import { Vec } from "./vector.js";
 import { DragCtrlHandleCtx } from "./drag.js";
 
-export type LineCtrlPoints = {
+export type LineCtrlPts = {
     start: Vec,
     end: Vec
 };
 
-export type BezierCtrlPoints = {
+export type BezierCtrlPts = {
     start: Vec,
     startCtrl: Vec,
     endCtrl: Vec,
     end: Vec
 };
 
-export type CtrlPoints = LineCtrlPoints | BezierCtrlPoints;
+export type CtrlPts = LineCtrlPts | BezierCtrlPts;
 
 const createHandle = (dragCallback: (mousePos: Vec) => void) => {
     const circle = createSvgElement("circle");
@@ -45,7 +48,7 @@ export abstract class PathControls {
 
     abstract updateStart(pos: Vec): void;
     abstract updateEnd(pos: Vec): void;
-    abstract calcAbsCtrlPoints(): CtrlPoints;
+    abstract calcAbsCtrlPts(): CtrlPts;
 
     show() {
         Object.values(this.handles).forEach(handle => canvas.appendChild(handle));
@@ -73,24 +76,24 @@ export class BezierControls extends PathControls {
         endHandle: SVGCircleElement
     };
 
-    constructor(startState: State, endState: State, path: SVGPathElement) {
-        super(path, {
+    constructor(edge: Edge) {
+        super(edge.svgElem, {
             startHandle: createHandle(mousePos => {
                 const angle = vec.atanScreenVec(vec.sub(mousePos)(this.cp.startStatePos));
                 this.cp.startAngle = angle;
-                const absCp = this.calcAbsCtrlPoints();
+                const absCp = this.calcAbsCtrlPts();
                 this.updateStartHandles(absCp);
                 setBezierCmd(this.path, absCp);
             }),
             startCtrlHandle: createHandle(mousePos => {
-                const absCp = this.calcAbsCtrlPoints();
+                const absCp = this.calcAbsCtrlPts();
                 absCp.startCtrl = mousePos;
                 this.cp.startCtrlRel = vec.sub(mousePos)(absCp.start);
                 this.updateStartHandles(absCp);
                 setBezierCmd(this.path, absCp);
             }),
             endCtrlHandle: createHandle(mousePos => {
-                const absCp = this.calcAbsCtrlPoints();
+                const absCp = this.calcAbsCtrlPts();
                 absCp.endCtrl = mousePos;
                 this.cp.endCtrlRel = vec.sub(mousePos)(absCp.end);
                 this.updateEndHandles(absCp);
@@ -99,11 +102,13 @@ export class BezierControls extends PathControls {
             endHandle: createHandle(mousePos => {
                 const angle = vec.atanScreenVec(vec.sub(mousePos)(this.cp.endStatePos));
                 this.cp.endAngle = angle;
-                const absCp = this.calcAbsCtrlPoints();
+                const absCp = this.calcAbsCtrlPts();
                 this.updateEndHandles(absCp);
                 setBezierCmd(this.path, absCp);
             })
         });
+
+        const { startState, endState } = edge;
 
         if (startState === endState) {
             this.cp = {
@@ -127,7 +132,7 @@ export class BezierControls extends PathControls {
             };
         }
 
-        const absCp = this.calcAbsCtrlPoints();
+        const absCp = this.calcAbsCtrlPts();
         this.updateStartHandles(absCp);
         this.updateEndHandles(absCp);
         setBezierCmd(this.path, absCp);
@@ -135,26 +140,26 @@ export class BezierControls extends PathControls {
 
     updateStart(pos: Vec): void {
         this.cp.startStatePos = pos;
-        const absCp = this.calcAbsCtrlPoints();
+        const absCp = this.calcAbsCtrlPts();
         this.updateStartHandles(absCp);
         setBezierCmd(this.path, absCp);
     }
 
     updateEnd(pos: Vec): void {
         this.cp.endStatePos = pos;
-        const absCp = this.calcAbsCtrlPoints();
+        const absCp = this.calcAbsCtrlPts();
         this.updateEndHandles(absCp);
         setBezierCmd(this.path, absCp);
     }
 
-    updateStartHandles(absCp: BezierCtrlPoints) {
+    updateStartHandles(absCp: BezierCtrlPts) {
         setAttributes(this.handles.startHandle, ["cx", "cy"],
             absCp.start.map(x => x.toString()));
         setAttributes(this.handles.startCtrlHandle, ["cx", "cy"],
             absCp.startCtrl.map(x => x.toString()));
     }
 
-    updateEndHandles(absCp: BezierCtrlPoints) {
+    updateEndHandles(absCp: BezierCtrlPts) {
         setAttributes(this.handles.endHandle, ["cx", "cy"],
             absCp.end.map(x => x.toString()));
         setAttributes(this.handles.endCtrlHandle, ["cx", "cy"],
@@ -165,7 +170,7 @@ export class BezierControls extends PathControls {
         return vec.add(this.cp.startStatePos)(vec.polar(stateConfig.radius, this.cp.startAngle));
     }
 
-    calcAbsCtrlPoints(): BezierCtrlPoints {
+    calcAbsCtrlPts(): BezierCtrlPts {
         const start = this.calcAbsStart();
         const startCtrl = vec.add(start)(this.cp.startCtrlRel);
         const end = vec.add(this.cp.endStatePos)
@@ -188,23 +193,25 @@ export class LineControls extends PathControls {
         endHandle: SVGCircleElement
     }
 
-    constructor(startState: State, endState: State, path: SVGPathElement) {
-        super(path, {
+    constructor(edge: Edge) {
+        super(edge.svgElem, {
             startHandle: createHandle(mousePos => {
                 const angle = vec.atanScreenVec(vec.sub(mousePos)(this.cp.startStatePos));
                 this.cp.startAngle = angle;
-                const absCp = this.calcAbsCtrlPoints();
+                const absCp = this.calcAbsCtrlPts();
                 this.updateStartHandle(absCp);
                 setLineCmd(this.path, absCp);
             }),
             endHandle: createHandle(mousePos => {
                 const angle = vec.atanScreenVec(vec.sub(mousePos)(this.cp.endStatePos));
                 this.cp.endAngle = angle;
-                const absCp = this.calcAbsCtrlPoints();
+                const absCp = this.calcAbsCtrlPts();
                 this.updateEndHandle(absCp);
                 setLineCmd(this.path, absCp);
             })
         });
+
+        const { startState, endState } = edge;
 
         const angle = vec.angleBetweenScreenVec(startState.pos)(endState.pos);
 
@@ -215,7 +222,7 @@ export class LineControls extends PathControls {
             endStatePos: endState.pos
         };
 
-        const absCp = this.calcAbsCtrlPoints();
+        const absCp = this.calcAbsCtrlPts();
         this.updateStartHandle(absCp);
         this.updateEndHandle(absCp);
         setLineCmd(this.path, absCp);
@@ -223,29 +230,29 @@ export class LineControls extends PathControls {
 
     updateStart(pos: vec.Vec): void {
         this.cp.startStatePos = pos;
-        const absCp = this.calcAbsCtrlPoints();
+        const absCp = this.calcAbsCtrlPts();
         this.updateStartHandle(absCp);
         setLineCmd(this.path, absCp);
     }
 
     updateEnd(pos: vec.Vec): void {
         this.cp.endStatePos = pos;
-        const absCp = this.calcAbsCtrlPoints();
+        const absCp = this.calcAbsCtrlPts();
         this.updateEndHandle(absCp);
         setLineCmd(this.path, absCp);
     }
 
-    updateStartHandle(absCp: LineCtrlPoints) {
+    updateStartHandle(absCp: LineCtrlPts) {
         setAttributes(this.handles.startHandle, ["cx", "cy"],
             absCp.start.map(x => x.toString()));
     }
 
-    updateEndHandle(absCp: LineCtrlPoints) {
+    updateEndHandle(absCp: LineCtrlPts) {
         setAttributes(this.handles.endHandle, ["cx", "cy"],
             absCp.end.map(x => x.toString()));
     }
 
-    calcAbsCtrlPoints(): LineCtrlPoints {
+    calcAbsCtrlPts(): LineCtrlPts {
         const start = vec.add(this.cp.startStatePos)
             (vec.polar(stateConfig.radius, this.cp.startAngle));
         const end = vec.add(this.cp.endStatePos)
@@ -254,14 +261,14 @@ export class LineControls extends PathControls {
     }
 }
 
-export class ShortestLine extends PathControls {
+export class ShortestLineControls extends PathControls {
     startStatePos: Vec;
     endStatePos: Vec;
 
-    constructor(startState: State, endState: State, path: SVGPathElement) {
-        super(path, {});
-        this.startStatePos = startState.pos;
-        this.endStatePos = endState.pos;
+    constructor(edge: Edge) {
+        super(edge.svgElem, {});
+        this.startStatePos = edge.startState.pos;
+        this.endStatePos = edge.endState.pos;
         this.updatePath();
     }
 
@@ -275,12 +282,12 @@ export class ShortestLine extends PathControls {
         this.updatePath();
     }
 
-    calcAbsCtrlPoints(): LineCtrlPoints {
+    calcAbsCtrlPts(): LineCtrlPts {
         const [start, end] = closestPoints(this.startStatePos, this.endStatePos);
         return { start, end };
     }
 
     updatePath() {
-        setLineCmd(this.path, this.calcAbsCtrlPoints());
+        setLineCmd(this.path, this.calcAbsCtrlPts());
     }
 }

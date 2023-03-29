@@ -1,10 +1,12 @@
-import { epsilonChar, stateConfig } from "./config.js";
+import { stateConfig } from "./config.js";
 import { addState, canvas, Edge, State, states, edges } from "./main.js";
-import { BezierControls, LineControls, ShortestLine } from "./path-controls.js";
+import {
+    BezierControls, LineControls, ShortestLineControls
+} from "./path-controls.js";
 import * as transConfig from "./trans-config.js"
 import {
-    Path, applyCTM, closestPoints, ifelse, side, setAttributes,
-    screenToSvgCoords, lineIntersectsRect, bezierIntersectsRect, setLineCmd
+    applyCTM, closestPoints, ifelse, setAttributes, screenToSvgCoords,
+    lineIntersectsRect, bezierIntersectsRect, setLineCmd
 } from "./util.js";
 import * as vec from "./vector.js";
 import { Vec } from "./vector.js";
@@ -57,10 +59,10 @@ export class DragEdgeCtx extends DragCtx {
         const to = [...states].find(state =>
             vec.dist(mousePos, state.pos) < stateConfig.radius);
 
-        this.edge.to = to;
+        this.edge.endState = to;
 
         const cursorPosOr = ifelse(to === undefined)(mousePos);
-        const [start, end] = closestPoints(this.edge.from.pos, cursorPosOr(to?.pos))
+        const [start, end] = closestPoints(this.edge.startState.pos, cursorPosOr(to?.pos))
         setLineCmd(this.edge.svgElem, { start, end: cursorPosOr(end) });
     }
 
@@ -68,22 +70,22 @@ export class DragEdgeCtx extends DragCtx {
         const edge = this.edge;
         const path = edge.svgElem;
 
-        if (edge.to === undefined) {
+        if (edge.endState === undefined) {
             path.remove();
             return;
         }
 
-        if (edge.from === edge.to) {
-            edge.controls = new BezierControls(edge.from, edge.to, path);
-            edge.controls.updateStart(edge.from.pos);
-            edge.controls.updateEnd(edge.to.pos);
+        if (edge.startState === edge.endState) {
+            edge.controls = new BezierControls(edge);
+            edge.controls.updateStart(edge.startState.pos);
+            edge.controls.updateEnd(edge.endState.pos);
         } else {
-            edge.controls = new ShortestLine(edge.from, edge.to, path);
+            edge.controls = new ShortestLineControls(edge);
         }
 
         edges.add(edge);
-        edge.from.outEdges.push(edge);
-        edge.to.inEdges.push(edge);
+        edge.startState.outEdges.push(edge);
+        edge.endState.inEdges.push(edge);
 
         path.classList.add("edge");
         canvas.appendChild(path);
@@ -102,6 +104,16 @@ export class DragSelectionCtx extends DragCtx {
         this.selected = new Set();
     }
 
+    select = (edge: Edge) => {
+        this.selected.add(edge);
+        edge.svgElem.classList.add("selected");
+    };
+
+    deselect = (edge: Edge) => {
+        this.selected.delete(edge);
+        edge.svgElem.classList.remove("selected");
+    };
+
     handleDrag(evt: MouseEvent): void {
         const mousePos = screenToSvgCoords([evt.x, evt.y]);
         const topLeft = this.init.map((x, i) => Math.min(x, mousePos[i])) as vec.Vec;
@@ -109,49 +121,25 @@ export class DragSelectionCtx extends DragCtx {
         setAttributes(this.rect, ["x", "y", "width", "height"],
             topLeft.concat(dim).map(x => x.toString()));
 
-        const mark = (edge: Edge) => {
-            this.selected.add(edge);
-            edge.svgElem.classList.add("selected");
-        };
-
-        const unmark = (edge: Edge) => {
-            this.selected.delete(edge);
-            edge.svgElem.classList.remove("selected");
-        };
-
         const botRight = vec.add(topLeft)(dim);
         edges.forEach(edge => {
             const controls = edge.controls;
-            if (controls instanceof LineControls || controls instanceof ShortestLine) {
-                const cpAbs = controls.calcAbsCtrlPoints();
+            if (controls instanceof LineControls || controls instanceof ShortestLineControls) {
+                const cpAbs = controls.calcAbsCtrlPts();
                 ifelse(lineIntersectsRect(cpAbs.start, cpAbs.end, topLeft, botRight))
-                    (mark)(unmark)(edge);
+                    (this.select)(this.deselect)(edge);
             } else if (controls instanceof BezierControls) {
-                const cpAbs = controls.calcAbsCtrlPoints();
+                const cpAbs = controls.calcAbsCtrlPts();
                 ifelse(bezierIntersectsRect(cpAbs.start, cpAbs.startCtrl,
                     cpAbs.endCtrl, cpAbs.end, topLeft, botRight))
-                    (mark)(unmark)(edge);
+                    (this.select)(this.deselect)(edge);
             }
         });
     }
 
     handleDrop(evt: MouseEvent): void {
-        this.showTransConfigForm();
+        transConfig.showForm(this.selected);
         this.rect.remove();
-    }
-
-    showTransConfigForm() {
-        if (this.selected.size === 0)
-            return;
-
-        transConfig.form.classList.remove("hidden");
-
-        if (this.selected.size === 1) {
-            const [selectedEdge] = this.selected.values();
-            transConfig.setEdge(selectedEdge);
-        } else {
-            transConfig.form.classList.add("mult-selected");
-        }
     }
 }
 

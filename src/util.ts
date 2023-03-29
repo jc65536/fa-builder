@@ -1,8 +1,8 @@
+import * as vec from "./vector.js";
 import * as cmpx from "./complex.js";
 import { stateConfig } from "./config.js";
 import { canvas } from "./main.js";
-import { BezierCtrlPoints, LineCtrlPoints } from "./path-controls.js";
-import * as vec from "./vector.js";
+import { BezierCtrlPts, LineCtrlPts } from "./path-controls.js";
 import { Vec } from "./vector.js";
 
 export const createSvgElement = <T extends keyof SVGElementTagNameMap>(name: T) =>
@@ -34,10 +34,10 @@ export const numOrd = (x: number, y: number) => x - y;
 
 export enum Path { Line, Bezier }
 
-export const setLineCmd = (path: SVGPathElement, cp: LineCtrlPoints) =>
+export const setLineCmd = (path: SVGPathElement, cp: LineCtrlPts) =>
     path.setAttribute("d", `M ${cp.start.join(",")} L ${cp.end.join(",")}`);
 
-export const setBezierCmd = (path: SVGPathElement, cp: BezierCtrlPoints) =>
+export const setBezierCmd = (path: SVGPathElement, cp: BezierCtrlPts) =>
     path.setAttribute("d", `M ${cp.start.join(",")}
                             C ${cp.startCtrl.join(",")}
                               ${cp.endCtrl.join(",")}

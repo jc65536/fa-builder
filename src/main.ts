@@ -1,11 +1,13 @@
-import {
-    createSvgElement, screenToSvgCoords, setAttributes
-} from "./util.js";
 import * as vec from "./vector.js";
 import * as dragman from "./dragman.js";
 import * as transConfig from "./trans-config.js"
-import { stateConfig, epsilonChar } from "./config.js";
-import { DragAddStateCtx, DragCtx, DragEdgeCtx, DragSelectionCtx, DragStateCtx } from "./drag.js";
+import { stateConfig } from "./config.js";
+import {
+    createSvgElement, screenToSvgCoords, setAttributes
+} from "./util.js";
+import {
+    DragAddStateCtx, DragEdgeCtx, DragSelectionCtx, DragStateCtx
+} from "./drag.js";
 import { PathControls } from "./path-controls.js";
 
 export const canvas = document.querySelector<SVGSVGElement>("#canvas");
@@ -23,9 +25,9 @@ export type State = {
 export type StateInput = [State, string];
 
 export type Edge = {
-    from: State,
+    startState: State,
     transChar: string,
-    to: State,
+    endState: State,
     svgElem: SVGPathElement,
     controls: PathControls
 };
@@ -85,12 +87,7 @@ const startDragSelection = (evt: MouseEvent) => {
     setAttributes(rect, ["x", "y", "width", "height"],
         init.concat([0, 0]).map(x => x.toString()));
 
-    canvas.querySelectorAll(".edge.selected")
-        .forEach(e => e.classList.remove("selected"));
-    transConfig.form.classList.remove("mult-selected");
-    transConfig.form.classList.add("hidden");
-
-    transConfig.unsetEdge();
+    transConfig.hideForm();
 
     dragman.setContext(new DragSelectionCtx(init, rect));
 
@@ -117,9 +114,9 @@ const startDragOnState = (state: State) => (evt: MouseEvent) => {
             path.classList.add("edge");
 
             dragman.setContext(new DragEdgeCtx({
-                from: state,
+                startState: state,
                 transChar: "",
-                to: state,
+                endState: state,
                 svgElem: path,
                 controls: null
             }));
