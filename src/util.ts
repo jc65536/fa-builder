@@ -1,6 +1,7 @@
 import * as cmpx from "./complex.js";
 import { stateConfig } from "./config.js";
 import { canvas } from "./main.js";
+import { BezierCtrlPoints, LineCtrlPoints } from "./path-controls.js";
 import * as vec from "./vector.js";
 import { Vec } from "./vector.js";
 
@@ -15,7 +16,7 @@ export const applyCTM = (pos: Vec, ctm: DOMMatrix): Vec =>
 
 export const closestPoints = (c1: Vec, c2: Vec): [Vec, Vec] => {
     const r = stateConfig.radius;
-    const a = vec.angleBetweenScreen(c1)(c2);
+    const a = vec.angleBetweenScreenVec(c1)(c2);
     const offset = vec.polar(r, a);
     return [vec.add(c1)(offset), vec.sub(c2)(offset)];
 };
@@ -33,44 +34,14 @@ export const numOrd = (x: number, y: number) => x - y;
 
 export enum Path { Line, Bezier }
 
-type LineCtrlPoints = {
-    type: Path.Line,
-    p1: Vec,
-    p2: Vec
-};
+export const setLineCmd = (path: SVGPathElement, cp: LineCtrlPoints) =>
+    path.setAttribute("d", `M ${cp.start.join(",")} L ${cp.end.join(",")}`);
 
-type BezierCtrlPoints = {
-    type: Path.Bezier,
-    from: Vec,
-    startA: number,
-    startCtrlRel: Vec,
-    endCtrlRel: Vec,
-    endA: number,
-    to: Vec
-};
-
-export type CtrlPoints = LineCtrlPoints | BezierCtrlPoints;
-
-const pathCmd = (cp: CtrlPoints): string => {
-    switch (cp.type) {
-        case Path.Line:
-            const { p1, p2 } = cp;
-            return `M ${p1[0]},${p1[1]} L ${p2[0]},${p2[1]}`;
-        case Path.Bezier:
-            const { from, startA, startCtrlRel, endCtrlRel, endA, to } = cp;
-            const start = vec.add(from)(vec.polar(stateConfig.radius, startA));
-            const end = vec.add(to)(vec.polar(stateConfig.radius, endA));
-            const startCtrl = vec.add(start)(startCtrlRel);
-            const endCtrl = vec.add(end)(endCtrlRel);
-            return `M ${start[0]},${start[1]}
-                    C ${startCtrl[0]},${startCtrl[1]}
-                    ${endCtrl[0]},${endCtrl[1]}
-                    ${end[0]},${end[1]}`;
-    }
-}
-
-export const setPathCmd = (path: SVGPathElement, cp: CtrlPoints) =>
-    path.setAttribute("d", pathCmd(cp));
+export const setBezierCmd = (path: SVGPathElement, cp: BezierCtrlPoints) =>
+    path.setAttribute("d", `M ${cp.start.join(",")}
+                            C ${cp.startCtrl.join(",")}
+                              ${cp.endCtrl.join(",")}
+                              ${cp.end.join(",")}`);
 
 export const lineIntersectsRect = ([x1, y1]: Vec, [x2, y2]: Vec,
     [l, t]: Vec, [r, b]: Vec) => {

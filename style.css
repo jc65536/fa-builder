@@ -3,6 +3,7 @@
     --fa-sel-stroke: #21ff57;
     --sel-fill: #317fff10;
     --sel-stroke: #317fff;
+    --handle-fill: #cd34ff;
 }
 
 #canvas {
@@ -15,8 +16,8 @@
     cursor: move;
     stroke-width: 2;
     stroke: var(--fa-stroke);
-    /* Can't use none here, otherwise mouse events won't land */
-    fill: transparent;
+    fill: none;
+    pointer-events: visibleFill;
 }
 
 .edge {
@@ -72,4 +73,14 @@
 
 #trans-config.mult-selected #config-inputs {
     display: none;
+}
+
+#line-choice:not(:checked)~#shortest-line,
+#line-choice:not(:checked)~label[for=shortest-line] {
+    display: none;
+}
+
+.control-handle {
+    fill: var(--handle-fill);
+    cursor: crosshair;
 }

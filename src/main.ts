@@ -1,11 +1,12 @@
 import {
-    createSvgElement, screenToSvgCoords, CtrlPoints, setAttributes
+    createSvgElement, screenToSvgCoords, setAttributes
 } from "./util.js";
 import * as vec from "./vector.js";
 import * as dragman from "./dragman.js";
 import * as transConfig from "./trans-config.js"
 import { stateConfig, epsilonChar } from "./config.js";
 import { DragAddStateCtx, DragCtx, DragEdgeCtx, DragSelectionCtx, DragStateCtx } from "./drag.js";
+import { PathControls } from "./path-controls.js";
 
 export const canvas = document.querySelector<SVGSVGElement>("#canvas");
 const addStateElem = document.querySelector<HTMLButtonElement>("#add-state");
@@ -26,7 +27,7 @@ export type Edge = {
     transChar: string,
     to: State,
     svgElem: SVGPathElement,
-    ctrlPoints: CtrlPoints
+    controls: PathControls
 };
 
 export const states = new Set<State>();
@@ -120,7 +121,7 @@ const startDragOnState = (state: State) => (evt: MouseEvent) => {
                 transChar: "",
                 to: state,
                 svgElem: path,
-                ctrlPoints: null
+                controls: null
             }));
 
             canvas.appendChild(path);

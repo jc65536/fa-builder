@@ -4,3 +4,7 @@ export const stateConfig = {
 };
 
 export const epsilonChar = "\u03b5";
+
+export const ctrlHandleConfig = {
+    radius: 4
+};
