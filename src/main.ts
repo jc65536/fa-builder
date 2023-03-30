@@ -1,25 +1,32 @@
 import * as vec from "./vector.js";
 import * as dragMan from "./drag-manager.js";
 import { Vec } from "./vector.js";
-import { stateConfig } from "./config.js";
+import { edgeConfig, stateConfig } from "./config.js";
 import {
     createSvgElement, screenToSvgCoords, setAttributes, uniqueStr
 } from "./util.js";
 import {
     DragAddStateCtx, DragEdgeCtx, DragSelectionCtx, DragStateCtx
 } from "./drag.js";
-import { PathControls, StartingEdgeControls } from "./path-controls.js";
+import {
+    BezierControls, PathControls,
+    ShortestLineControls, StartingEdgeControls
+} from "./path-controls.js";
 import { cancelSelection } from "./selection.js";
+
+// Important DOM elements
 
 export const canvas = document.querySelector<SVGSVGElement>("#canvas");
 const addStateElem = document.querySelector<HTMLButtonElement>("#add-state");
 export const configMenuContainer =
     document.querySelector<HTMLDivElement>("#config-menu-container");
 
+// State machine data types and global structures for storing the state machine
+
 export type State = {
     name: string,
     accepting: boolean,
-    gElem: SVGGElement,
+    groupElem: SVGGElement,
     textElem: SVGTextElement,
     pos: Vec,
     inEdges: Edge[],
@@ -33,11 +40,14 @@ export type Edge = {
     transChar: string,
     endState: State,
     pathElem: SVGPathElement,
-    textElem: SVGTextPathElement,
+    textElem: SVGTextElement,
+    textPathElem: SVGTextPathElement,
     controls: PathControls
 };
 
 export const states = new Set<State>();
+export const acceptingStates = new Set<State>();
+export const edges = new Set<Edge>();
 
 export const [setStartingState, getStartingState, getStartingEdge] = (() => {
     let startingState: State = null;
@@ -52,6 +62,7 @@ export const [setStartingState, getStartingState, getStartingEdge] = (() => {
         endState: null,
         pathElem: path,
         textElem: null,
+        textPathElem: null,
         controls: null
     };
 
@@ -79,8 +90,7 @@ export const [setStartingState, getStartingState, getStartingEdge] = (() => {
     return [setStartingState, () => startingState, () => startingEdge];
 })();
 
-export const acceptingStates = new Set<State>();
-export const edges = new Set<Edge>();
+// Basic interactions with states/edges
 
 export const toggleAccept = (state: State) => {
     state.accepting = !state.accepting;
@@ -88,10 +98,10 @@ export const toggleAccept = (state: State) => {
         const innerCircle = createSvgElement("circle");
         innerCircle.setAttribute("r", stateConfig.innerRadius.toString());
         innerCircle.classList.add("inner-circle");
-        state.gElem.appendChild(innerCircle);
+        state.groupElem.appendChild(innerCircle);
         acceptingStates.add(state);
     } else {
-        state.gElem.querySelector(".inner-circle").remove();
+        state.groupElem.querySelector(".inner-circle").remove();
         acceptingStates.delete(state);
     }
 };
@@ -119,7 +129,7 @@ export const addState = (pos: Vec) => {
     const state: State = {
         name: name,
         accepting: false,
-        gElem: group,
+        groupElem: group,
         textElem: text,
         pos: pos,
         inEdges: [],
@@ -132,22 +142,65 @@ export const addState = (pos: Vec) => {
     canvas.appendChild(group);
 };
 
-const startDragSelection = (evt: MouseEvent) => {
-    if (dragMan.hasContext() || evt.button !== 0)
-        return;
+export const deleteState = (state: State) => {
+    state.outEdges.forEach(deleteEdge);
+    state.inEdges.forEach(deleteEdge);
 
-    const init = screenToSvgCoords([evt.x, evt.y]);
-    const rect = createSvgElement("rect");
-    rect.classList.add("selection");
-    setAttributes(rect, ["x", "y", "width", "height"],
-        init.concat([0, 0]).map(x => x.toString()));
+    if (state.accepting)
+        acceptingStates.delete(state);
 
-    cancelSelection();
+    if (state === getStartingState())
+        setStartingState(null);
 
-    dragMan.setContext(new DragSelectionCtx(init, rect));
-
-    canvas.appendChild(rect);
+    state.groupElem.remove();
+    states.delete(state);
 };
+
+export const addEdge = (edge: Edge) => {
+    const controlsType = edge.startState === edge.endState ?
+        BezierControls : ShortestLineControls;
+    edge.controls = new controlsType(edge);
+
+    edges.add(edge);
+    edge.startState.outEdges.push(edge);
+    edge.endState.inEdges.push(edge);
+
+    const id = `edge-${uniqueStr("edge")}`;
+
+    edge.pathElem.id = id;
+    canvas.appendChild(edge.pathElem);
+
+    const transCharContainer = createSvgElement("text");
+    transCharContainer.setAttribute("dy", edgeConfig.textVertOffset.toString());
+    transCharContainer.classList.add("trans-char-container");
+    edge.textElem = transCharContainer;
+
+    const textPath = createSvgElement("textPath");
+    textPath.setAttribute("startOffset", "50%");
+    textPath.setAttribute("href", `#${id}`);
+    edge.textPathElem = textPath;
+    transCharContainer.appendChild(textPath);
+
+    canvas.appendChild(transCharContainer);
+}
+
+export const deleteEdge = (edge: Edge) => {
+    if (edge === getStartingEdge()) {
+        setStartingState(null);
+    } else {
+        edge.startState.outEdges =
+            edge.startState.outEdges.filter(e => e !== edge);
+
+        edge.endState.inEdges =
+            edge.endState.inEdges.filter(e => e !== edge);
+
+        edge.pathElem.remove();
+        edge.textElem.remove();
+        edges.delete(edge);
+    }
+};
+
+// Drag initialization functions
 
 const startDragOnState = (state: State) => (evt: MouseEvent) => {
     if (dragMan.hasContext())
@@ -161,7 +214,7 @@ const startDragOnState = (state: State) => (evt: MouseEvent) => {
             dragMan.setContext(new DragStateCtx(state,
                 screenToSvgCoords([evt.x, evt.y]), trans));
 
-            state.gElem.transform.baseVal.appendItem(trans);
+            state.groupElem.transform.baseVal.appendItem(trans);
             break;
 
         case 2:
@@ -174,6 +227,7 @@ const startDragOnState = (state: State) => (evt: MouseEvent) => {
                 endState: state,
                 pathElem: path,
                 textElem: null,
+                textPathElem: null,
                 controls: null
             }));
 
@@ -192,6 +246,23 @@ const startDragAddState = (evt: MouseEvent) => {
     dragMan.setContext(new DragAddStateCtx(offset, circle));
     addStateElem.appendChild(circle);
 }
+
+const startDragSelection = (evt: MouseEvent) => {
+    if (dragMan.hasContext() || evt.button !== 0)
+        return;
+
+    const init = screenToSvgCoords([evt.x, evt.y]);
+    const rect = createSvgElement("rect");
+    rect.classList.add("selection");
+    setAttributes(rect, ["x", "y", "width", "height"],
+        init.concat([0, 0]).map(x => x.toString()));
+
+    cancelSelection();
+
+    dragMan.setContext(new DragSelectionCtx(init, rect));
+
+    canvas.appendChild(rect);
+};
 
 addStateElem.addEventListener("mousedown", startDragAddState);
 

@@ -1,5 +1,5 @@
-import { edgeConfig, stateConfig } from "./config.js";
-import { addState, canvas, Edge, State, states, edges } from "./main.js";
+import { stateConfig } from "./config.js";
+import { addState, Edge, State, states, edges, addEdge } from "./main.js";
 import {
     BezierControls, LineControls, ShortestLineControls, StartingEdgeControls
 } from "./path-controls.js";
@@ -9,7 +9,7 @@ import {
 } from "./selection.js";
 import {
     applyCTM, ifelse, setAttributes, screenToSvgCoords, lineIntersectsRect,
-    bezierIntersectsRect, setLineCmd, uniqueStr, createSvgElement
+    bezierIntersectsRect, setLineCmd
 } from "./util.js";
 import * as vec from "./vector.js";
 import { Vec } from "./vector.js";
@@ -44,8 +44,8 @@ export class DragStateCtx extends DragCtx {
     }
 
     handleDrop(evt: MouseEvent): void {
-        this.state.gElem.transform.baseVal.consolidate();
-        this.state.pos = applyCTM([0, 0], this.state.gElem.getCTM());
+        this.state.groupElem.transform.baseVal.consolidate();
+        this.state.pos = applyCTM([0, 0], this.state.groupElem.getCTM());
     }
 }
 
@@ -73,35 +73,11 @@ export class DragEdgeCtx extends DragCtx {
     }
 
     handleDrop(evt: MouseEvent): void {
-        const edge = this.edge;
-        const path = edge.pathElem;
-
-        if (edge.endState === undefined) {
-            path.remove();
+        if (this.edge.endState === undefined) {
+            this.edge.pathElem.remove();
             return;
         }
-
-        const controlsType = edge.startState === edge.endState ?
-            BezierControls : ShortestLineControls;
-        edge.controls = new controlsType(edge);
-
-        edges.add(edge);
-        edge.startState.outEdges.push(edge);
-        edge.endState.inEdges.push(edge);
-
-        path.id = `edge-${uniqueStr("edge")}`;
-        canvas.appendChild(path);
-
-        const textPathContainer = createSvgElement("text");
-        textPathContainer.setAttribute("dy", edgeConfig.textVertOffset.toString());
-        textPathContainer.classList.add("trans-char-container");
-        canvas.appendChild(textPathContainer);
-
-        const textPath = createSvgElement("textPath");
-        textPath.setAttribute("startOffset", "50%");
-        textPath.setAttribute("href", `#${path.id}`);
-        textPathContainer.appendChild(textPath);
-        edge.textElem = textPath;
+        addEdge(this.edge)
     }
 }
 

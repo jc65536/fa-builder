@@ -1,8 +1,7 @@
 import * as transConfig from "./trans-config.js";
 import * as stateConfig from "./state-config.js";
 import {
-    acceptingStates, configMenuContainer, Edge, edges, State, states,
-    getStartingEdge, getStartingState, setStartingState
+    configMenuContainer, Edge, State, getStartingEdge, deleteEdge, deleteState
 } from "./main.js";
 
 export const selectedEdges = new Set<Edge>();
@@ -20,12 +19,12 @@ export const deselectEdge = (edge: Edge) => {
 
 export const selectState = (state: State) => {
     selectedStates.add(state);
-    state.gElem.classList.add("selected");
+    state.groupElem.classList.add("selected");
 };
 
 export const deselectState = (state: State) => {
     selectedStates.delete(state);
-    state.gElem.classList.remove("selected");
+    state.groupElem.classList.remove("selected");
 };
 
 export const cancelSelection = () => {
@@ -34,7 +33,7 @@ export const cancelSelection = () => {
         e.pathElem.classList.remove("selected")
     });
     selectedEdges.clear();
-    selectedStates.forEach(s => s.gElem.classList.remove("selected"));
+    selectedStates.forEach(s => s.groupElem.classList.remove("selected"));
     selectedStates.clear();
     configMenuContainer.classList.value = "none";
 }
@@ -63,36 +62,6 @@ export const finishSelection = () => {
     })();
 
     selectedEdges.forEach(e => e.controls.show());
-};
-
-export const deleteEdge = (edge: Edge) => {
-    if (edge === getStartingEdge()) {
-        setStartingState(null);
-    } else {
-        edge.startState.outEdges =
-            edge.startState.outEdges.filter(e => e !== edge);
-
-        edge.endState.inEdges =
-            edge.endState.inEdges.filter(e => e !== edge);
-
-        edge.pathElem.remove();
-        edge.textElem?.remove();
-        edges.delete(edge);
-    }
-};
-
-export const deleteState = (state: State) => {
-    state.outEdges.forEach(deleteEdge);
-    state.inEdges.forEach(deleteEdge);
-
-    if (state.accepting)
-        acceptingStates.delete(state);
-
-    if (state === getStartingState())
-        setStartingState(null);
-
-    state.gElem.remove();
-    states.delete(state);
 };
 
 const deleteSelection = (evt: Event) => {

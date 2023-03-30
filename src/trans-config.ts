@@ -62,20 +62,20 @@ export const inputTransChar = checkNull((evt: Event) => {
         epsilonTrans.checked = true;
     }
 
-    selectedEdge.textElem.textContent = transChar.value;
+    selectedEdge.textPathElem.textContent = transChar.value;
 });
 
 export const changeEpsilonTrans = checkNull((evt: Event) => {
     const { transChar, epsilonTrans } = inputs;
 
     if (epsilonTrans.checked) {
-        selectedEdge.textElem.textContent
+        selectedEdge.textPathElem.textContent
             = selectedEdge.transChar
             = transChar.value
             = epsilonChar;
         transChar.disabled = true;
     } else {
-        selectedEdge.textElem.textContent
+        selectedEdge.textPathElem.textContent
             = selectedEdge.transChar
             = transChar.value
             = "";
