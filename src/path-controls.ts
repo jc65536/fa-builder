@@ -329,9 +329,7 @@ export class StartingEdgeControls extends PathControls {
             endStatePos: edge.endState.pos
         };
 
-        const absCp = this.calcAbsCtrlPts();
-        this.updateEndHandle(absCp);
-        setLineCmd(this.path, absCp);
+        this.updateEnd(edge.endState.pos);
     }
 
     updateStart(pos: vec.Vec): void { }

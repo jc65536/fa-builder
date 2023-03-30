@@ -41,37 +41,35 @@ export type Edge = {
 export const states = new Set<State>();
 
 export const [setStartingState, getStartingState, getStartingEdge] = (() => {
-    // Invariant: either both are null or neither is
     let startingState: State = null;
-    let startingEdge: Edge = null;
 
     const path = createSvgElement("path");
     path.classList.add("edge");
     path.id = "starting-edge";
 
+    const startingEdge: Edge = {
+        startState: null,
+        transChar: null,
+        endState: null,
+        pathElem: path,
+        textElem: null,
+        controls: null
+    };
+
     const setStartingState = (state: State) => {
+        // Unlink previous starting state
         if (startingState !== null) {
             startingState.inEdges =
                 startingState.inEdges.filter(e => e !== startingEdge);
-
-            startingEdge.pathElem.remove();
-            edges.delete(startingEdge);
         }
 
         if (state === null) {
-            startingEdge = null;
+            edges.delete(startingEdge);
+            startingEdge.pathElem.remove();
         } else {
-            startingEdge = {
-                startState: null,
-                transChar: null,
-                endState: state,
-                pathElem: path,
-                textElem: null,
-                controls: null
-            };
-
-            startingEdge.controls = new StartingEdgeControls(startingEdge);
             state.inEdges.push(startingEdge);
+            startingEdge.endState = state;
+            startingEdge.controls = new StartingEdgeControls(startingEdge);
             edges.add(startingEdge);
             canvas.appendChild(path);
         }
