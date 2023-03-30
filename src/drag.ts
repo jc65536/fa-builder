@@ -1,7 +1,7 @@
 import { edgeConfig, stateConfig } from "./config.js";
 import { addState, canvas, Edge, State, states, edges, configMenuContainer } from "./main.js";
 import {
-    BezierControls, LineControls, ShortestLineControls
+    BezierControls, LineControls, ShortestLineControls, StartingEdgeControls
 } from "./path-controls.js";
 import { deselectEdge, deselectState, selectEdge, selectState, finishSelection } from "./selection.js";
 import * as transConfig from "./trans-config.js";
@@ -42,8 +42,8 @@ export class DragStateCtx extends DragCtx {
     }
 
     handleDrop(evt: MouseEvent): void {
-        this.state.svgElem.transform.baseVal.consolidate();
-        this.state.pos = applyCTM([0, 0], this.state.svgElem.getCTM());
+        this.state.gElem.transform.baseVal.consolidate();
+        this.state.pos = applyCTM([0, 0], this.state.gElem.getCTM());
     }
 }
 
@@ -87,8 +87,7 @@ export class DragEdgeCtx extends DragCtx {
         edge.startState.outEdges.push(edge);
         edge.endState.inEdges.push(edge);
 
-        path.classList.add("edge");
-        path.id = `edge-${uniqueStr()}`;
+        path.id = `edge-${uniqueStr("edge")}`;
         canvas.appendChild(path);
 
         const textPathContainer = createSvgElement("text");
@@ -126,7 +125,7 @@ export class DragSelectionCtx extends DragCtx {
         const botRight = vec.add(topLeft)(dim);
         edges.forEach(edge => {
             const controls = edge.controls;
-            if (controls instanceof LineControls || controls instanceof ShortestLineControls) {
+            if (controls instanceof LineControls || controls instanceof ShortestLineControls || controls instanceof StartingEdgeControls) {
                 const cpAbs = controls.calcAbsCtrlPts();
                 ifelse(lineIntersectsRect(cpAbs.start, cpAbs.end, topLeft, botRight))
                     (selectEdge)(deselectEdge)(edge);

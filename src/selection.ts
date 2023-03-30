@@ -1,5 +1,6 @@
 import * as transConfig from "./trans-config.js";
-import { acceptingStates, configMenuContainer, Edge, edges, State, states } from "./main.js";
+import * as stateConfig from "./state-config.js";
+import { acceptingStates, configMenuContainer, Edge, edges, State, states, getStartingEdge, getStartingState } from "./main.js";
 
 export const selectedEdges = new Set<Edge>();
 export const selectedStates = new Set<State>();
@@ -16,21 +17,21 @@ export const deselectEdge = (edge: Edge) => {
 
 export const selectState = (state: State) => {
     selectedStates.add(state);
-    state.svgElem.classList.add("selected");
+    state.gElem.classList.add("selected");
 };
 
 export const deselectState = (state: State) => {
     selectedStates.delete(state);
-    state.svgElem.classList.remove("selected");
+    state.gElem.classList.remove("selected");
 };
 
-export const deselectAll = () => {
+export const cancelSelection = () => {
     selectedEdges.forEach(e => {
         e.controls.hide();
         e.pathElem.classList.remove("selected")
     });
     selectedEdges.clear();
-    selectedStates.forEach(s => s.svgElem.classList.remove("selected"));
+    selectedStates.forEach(s => s.gElem.classList.remove("selected"));
     selectedStates.clear();
     configMenuContainer.classList.value = "none";
 }
@@ -45,9 +46,15 @@ export const finishSelection = () => {
             return "mult";
         } else if (selectedEdges.size === 1) {
             const [edge] = selectedEdges;
+
+            if (edge === getStartingEdge())
+                return "none";
+
             transConfig.initForm(edge);
             return "trans";
         } else {
+            const [state] = selectedStates;
+            stateConfig.initForm(state);
             return "state";
         }
     })();
@@ -67,7 +74,12 @@ const deleteEdge = (edge: Edge) => {
     edges.delete(edge);
 }
 
-const deleteSelected = (evt: Event) => {
+const deleteSelection = (evt: Event) => {
+    if (selectedStates.has(getStartingState()) || selectedEdges.has(getStartingEdge())) {
+        alert("Can't delete starting state!");
+        return;
+    }
+
     const numSelected = selectedEdges.size + selectedStates.size;
     if (numSelected <= 10 || confirm("Delete 10+ elements?")) {
         selectedEdges.forEach(deleteEdge);
@@ -79,11 +91,11 @@ const deleteSelected = (evt: Event) => {
             if (state.accepting)
                 acceptingStates.delete(state);
             
-            state.svgElem.remove();
+            state.gElem.remove();
             states.delete(state);
         });
     }
-    deselectAll();
+    cancelSelection();
 }
 
-document.getElementById("delete").addEventListener("click", deleteSelected);
+document.getElementById("delete").addEventListener("click", deleteSelection);

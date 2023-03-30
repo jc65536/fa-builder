@@ -10,5 +10,6 @@ export const ctrlHandleConfig = {
 };
 
 export const edgeConfig = {
-    textVertOffset: -6
+    textVertOffset: -6,
+    startingEdgeLength: stateConfig.radius * 1.25
 };

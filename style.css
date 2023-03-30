@@ -93,11 +93,16 @@
     cursor: crosshair;
 }
 
-.trans-char-container {
+.trans-char-container, .state-name {
     text-anchor: middle;
     font: 1.25rem sans-serif;
-    color: var(--fa-stroke);
     user-select: none;
+    fill: var(--fa-stroke);
+}
+
+.state-name {
+    stroke: none;
+    dominant-baseline: central;
 }
 
 #config-menu-container:not(.none) > #config-menu-hint,

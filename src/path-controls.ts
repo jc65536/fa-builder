@@ -1,6 +1,6 @@
 import * as vec from "./vector.js";
 import * as dragman from "./drag-manager.js";
-import { ctrlHandleConfig, stateConfig } from "./config.js";
+import { ctrlHandleConfig, edgeConfig, stateConfig } from "./config.js";
 import { canvas, Edge } from "./main.js";
 import {
     createSvgElement, setAttributes, setBezierCmd, setLineCmd
@@ -270,7 +270,7 @@ export class ShortestLineControls extends PathControls {
     constructor(edge: Edge) {
         super(edge.pathElem, {});
 
-        const {startState, endState} = edge;
+        const { startState, endState } = edge;
 
         const angle = vec.angleBetweenScreenVec(startState.pos)(endState.pos);
 
@@ -305,5 +305,54 @@ export class ShortestLineControls extends PathControls {
 
     updatePath() {
         setLineCmd(this.path, this.calcAbsCtrlPts());
+    }
+}
+
+export class StartingEdgeControls extends PathControls {
+    handles: { endHandle: SVGCircleElement };
+
+    constructor(edge: Edge) {
+        super(edge.pathElem, {
+            endHandle: createHandle(mousePos => {
+                const angle = vec.atanScreenVec(vec.sub(mousePos)(this.cp.endStatePos));
+                this.cp.endAngle = angle;
+                const absCp = this.calcAbsCtrlPts();
+                this.updateEndHandle(absCp);
+                setLineCmd(this.path, absCp);
+            })
+        });
+
+        this.cp = {
+            startStatePos: null,
+            startAngle: null,
+            endAngle: Math.PI,
+            endStatePos: edge.endState.pos
+        };
+
+        const absCp = this.calcAbsCtrlPts();
+        this.updateEndHandle(absCp);
+        setLineCmd(this.path, absCp);
+    }
+
+    updateStart(pos: vec.Vec): void { }
+
+    updateEnd(pos: vec.Vec): void {
+        this.cp.endStatePos = pos;
+        const absCp = this.calcAbsCtrlPts();
+        this.updateEndHandle(absCp);
+        setLineCmd(this.path, absCp);
+    }
+
+    updateEndHandle(absCp: LineCtrlPts) {
+        setAttributes(this.handles.endHandle, ["cx", "cy"],
+            absCp.end.map(x => x.toString()));
+    }
+
+    calcAbsCtrlPts(): LineCtrlPts {
+        const end = vec.add(this.cp.endStatePos)
+            (vec.polar(stateConfig.radius, this.cp.endAngle));
+        const start = vec.add(end)
+            (vec.polar(edgeConfig.startingEdgeLength, this.cp.endAngle));
+        return { start, end };
     }
 }
