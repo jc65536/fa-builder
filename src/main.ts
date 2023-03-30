@@ -1,6 +1,5 @@
 import * as vec from "./vector.js";
 import * as dragMan from "./drag-manager.js";
-import * as transConfig from "./trans-config.js";
 import { Vec } from "./vector.js";
 import { stateConfig } from "./config.js";
 import {
@@ -10,7 +9,7 @@ import {
     DragAddStateCtx, DragEdgeCtx, DragSelectionCtx, DragStateCtx
 } from "./drag.js";
 import { PathControls, StartingEdgeControls } from "./path-controls.js";
-import { cancelSelection, deleteEdge } from "./selection.js";
+import { cancelSelection } from "./selection.js";
 
 export const canvas = document.querySelector<SVGSVGElement>("#canvas");
 const addStateElem = document.querySelector<HTMLButtonElement>("#add-state");

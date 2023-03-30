@@ -1,10 +1,12 @@
 import { edgeConfig, stateConfig } from "./config.js";
-import { addState, canvas, Edge, State, states, edges, configMenuContainer } from "./main.js";
+import { addState, canvas, Edge, State, states, edges } from "./main.js";
 import {
     BezierControls, LineControls, ShortestLineControls, StartingEdgeControls
 } from "./path-controls.js";
-import { deselectEdge, deselectState, selectEdge, selectState, finishSelection } from "./selection.js";
-import * as transConfig from "./trans-config.js";
+import {
+    deselectEdge, deselectState, selectEdge,
+    selectState, finishSelection
+} from "./selection.js";
 import {
     applyCTM, ifelse, setAttributes, screenToSvgCoords, lineIntersectsRect,
     bezierIntersectsRect, setLineCmd, uniqueStr, createSvgElement

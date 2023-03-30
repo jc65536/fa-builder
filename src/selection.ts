@@ -1,6 +1,9 @@
 import * as transConfig from "./trans-config.js";
 import * as stateConfig from "./state-config.js";
-import { acceptingStates, configMenuContainer, Edge, edges, State, states, getStartingEdge, getStartingState, setStartingState } from "./main.js";
+import {
+    acceptingStates, configMenuContainer, Edge, edges, State, states,
+    getStartingEdge, getStartingState, setStartingState
+} from "./main.js";
 
 export const selectedEdges = new Set<Edge>();
 export const selectedStates = new Set<State>();
@@ -84,7 +87,7 @@ export const deleteState = (state: State) => {
 
     if (state.accepting)
         acceptingStates.delete(state);
-    
+
     if (state === getStartingState())
         setStartingState(null);
 

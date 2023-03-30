@@ -1,9 +1,7 @@
 import { epsilonChar } from "./config.js";
-import { canvas, Edge, edges, getStartingEdge } from "./main.js";
+import { Edge } from "./main.js";
 import {
-    BezierControls, LineControls,
-    ShortestLineControls,
-    StartingEdgeControls
+    BezierControls, LineControls, ShortestLineControls
 } from "./path-controls.js";
 
 export const form = document.querySelector<HTMLFormElement>("#trans-config");

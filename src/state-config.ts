@@ -1,4 +1,6 @@
-import { getStartingState, setStartingState, State, toggleAccept } from "./main.js";
+import {
+    getStartingState, setStartingState, State, toggleAccept
+} from "./main.js";
 
 export const form = document.querySelector<HTMLFormElement>("#state-config");
 
@@ -12,7 +14,7 @@ let selectedState: State = null;
 
 export const initForm = (state: State) => {
     selectedState = state;
-    
+
     const { stateName, starting, accepting } = inputs;
 
     stateName.value = state.name;
