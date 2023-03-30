@@ -271,3 +271,11 @@ canvas.addEventListener("mousedown", startDragSelection);
 
 document.addEventListener("mousemove", dragMan.handleDrag);
 document.addEventListener("mouseup", dragMan.handleDrop);
+
+const dispatchShortcut = (evt: KeyboardEvent) => {
+    if (evt.ctrlKey && evt.key === "z") {
+        console.log("undo");
+    }
+};
+
+document.addEventListener("keydown", dispatchShortcut);
