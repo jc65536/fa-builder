@@ -295,15 +295,17 @@ export class ShortestLineControls extends PathControls {
     }
 
     calcAbsCtrlPts(): LineCtrlPts {
-        const angle = vec.angleBetweenScreenVec(this.cp.startStatePos)
-            (this.cp.endStatePos);
-        const radius = vec.polar(stateConfig.radius, angle);
+        const radius = vec.polar(stateConfig.radius, this.cp.startAngle);
         const start = vec.add(this.cp.startStatePos)(radius);
         const end = vec.sub(this.cp.endStatePos)(radius);
         return { start, end };
     }
 
     updatePath() {
+        const angle = vec.angleBetweenScreenVec(this.cp.startStatePos)
+            (this.cp.endStatePos);
+        this.cp.startAngle = angle;
+        this.cp.endAngle = angle + Math.PI;
         setLineCmd(this.path, this.calcAbsCtrlPts());
     }
 }
