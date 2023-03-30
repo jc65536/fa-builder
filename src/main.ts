@@ -29,11 +29,9 @@ export type State = {
     groupElem: SVGGElement,
     textElem: SVGTextElement,
     pos: Vec,
-    inEdges: Edge[],
-    outEdges: Edge[]
+    inEdges: Set<Edge>,
+    outEdges: Set<Edge>
 };
-
-export type StateInput = [State, string];
 
 export type Edge = {
     startState: State,
@@ -67,17 +65,13 @@ export const [setStartingState, getStartingState, getStartingEdge] = (() => {
     };
 
     const setStartingState = (state: State) => {
-        // Unlink previous starting state
-        if (startingState !== null) {
-            startingState.inEdges =
-                startingState.inEdges.filter(e => e !== startingEdge);
-        }
+        startingState?.inEdges.delete(startingEdge);
 
         if (state === null) {
             edges.delete(startingEdge);
             startingEdge.pathElem.remove();
         } else {
-            state.inEdges.push(startingEdge);
+            state.inEdges.add(startingEdge);
             startingEdge.endState = state;
             startingEdge.controls = new StartingEdgeControls(startingEdge);
             edges.add(startingEdge);
@@ -132,8 +126,8 @@ export const addState = (pos: Vec) => {
         groupElem: group,
         textElem: text,
         pos: pos,
-        inEdges: [],
-        outEdges: []
+        inEdges: new Set(),
+        outEdges: new Set()
     };
 
     group.addEventListener("mousedown", startDragOnState(state));
@@ -162,8 +156,8 @@ export const addEdge = (edge: Edge) => {
     edge.controls = new controlsType(edge);
 
     edges.add(edge);
-    edge.startState.outEdges.push(edge);
-    edge.endState.inEdges.push(edge);
+    edge.startState.outEdges.add(edge);
+    edge.endState.inEdges.add(edge);
 
     const id = `edge-${uniqueStr("edge")}`;
 
@@ -188,12 +182,8 @@ export const deleteEdge = (edge: Edge) => {
     if (edge === getStartingEdge()) {
         setStartingState(null);
     } else {
-        edge.startState.outEdges =
-            edge.startState.outEdges.filter(e => e !== edge);
-
-        edge.endState.inEdges =
-            edge.endState.inEdges.filter(e => e !== edge);
-
+        edge.startState.outEdges.delete(edge);
+        edge.endState.inEdges.delete(edge);
         edge.pathElem.remove();
         edge.textElem.remove();
         edges.delete(edge);
