@@ -1,8 +1,9 @@
 import { edgeConfig, stateConfig } from "./config.js";
-import { addState, canvas, Edge, State, states, edges } from "./main.js";
+import { addState, canvas, Edge, State, states, edges, configMenuContainer } from "./main.js";
 import {
     BezierControls, LineControls, ShortestLineControls
 } from "./path-controls.js";
+import { deselectEdge, deselectState, selectEdge, selectState, finishSelection } from "./selection.js";
 import * as transConfig from "./trans-config.js";
 import {
     applyCTM, ifelse, setAttributes, screenToSvgCoords, lineIntersectsRect,
@@ -78,13 +79,9 @@ export class DragEdgeCtx extends DragCtx {
             return;
         }
 
-        if (edge.startState === edge.endState) {
-            edge.controls = new BezierControls(edge);
-            edge.controls.updateStart(edge.startState.pos);
-            edge.controls.updateEnd(edge.endState.pos);
-        } else {
-            edge.controls = new ShortestLineControls(edge);
-        }
+        const controlsType = edge.startState === edge.endState ?
+            BezierControls : ShortestLineControls;
+        edge.controls = new controlsType(edge);
 
         edges.add(edge);
         edge.startState.outEdges.push(edge);
@@ -107,27 +104,17 @@ export class DragEdgeCtx extends DragCtx {
     }
 }
 
+export const inRange = (a: number, x: number, b: number) => a <= x && x <= b;
+
 export class DragSelectionCtx extends DragCtx {
     init: Vec;
     rect: SVGRectElement;
-    selected: Set<Edge>;
 
     constructor(init: Vec, rect: SVGRectElement) {
         super();
         this.init = init;
         this.rect = rect;
-        this.selected = new Set();
     }
-
-    select = (edge: Edge) => {
-        this.selected.add(edge);
-        edge.pathElem.classList.add("selected");
-    };
-
-    deselect = (edge: Edge) => {
-        this.selected.delete(edge);
-        edge.pathElem.classList.remove("selected");
-    };
 
     handleDrag(evt: MouseEvent): void {
         const mousePos = screenToSvgCoords([evt.x, evt.y]);
@@ -142,18 +129,32 @@ export class DragSelectionCtx extends DragCtx {
             if (controls instanceof LineControls || controls instanceof ShortestLineControls) {
                 const cpAbs = controls.calcAbsCtrlPts();
                 ifelse(lineIntersectsRect(cpAbs.start, cpAbs.end, topLeft, botRight))
-                    (this.select)(this.deselect)(edge);
+                    (selectEdge)(deselectEdge)(edge);
             } else if (controls instanceof BezierControls) {
                 const cpAbs = controls.calcAbsCtrlPts();
                 ifelse(bezierIntersectsRect(cpAbs.start, cpAbs.startCtrl,
                     cpAbs.endCtrl, cpAbs.end, topLeft, botRight))
-                    (this.select)(this.deselect)(edge);
+                    (selectEdge)(deselectEdge)(edge);
             }
+        });
+
+        states.forEach(state => {
+            const rad = stateConfig.radius;
+            const [l, t] = topLeft;
+            const [r, b] = botRight;
+            const [x, y] = state.pos;
+
+            const intersects = (inRange(l - rad, x, r + rad) && inRange(t, y, b))
+                || (inRange(l, x, r) && inRange(t - rad, y, b + rad))
+                || [topLeft, [l, b], [r, t], botRight]
+                    .some((corner: Vec) => vec.dist(state.pos, corner) <= rad);
+
+            ifelse(intersects)(selectState)(deselectState)(state);
         });
     }
 
     handleDrop(evt: MouseEvent): void {
-        transConfig.showForm(this.selected);
+        finishSelection();
         this.rect.remove();
     }
 }

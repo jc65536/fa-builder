@@ -19,41 +19,48 @@
         </marker>
       </defs>
     </svg>
+
     <div id="add-state" class="statelike">Drag me!</div>
-    <div id="config-menu-container">
-      <form id="trans-config" class="hidden">
-        <h2>Transition config</h2>
-        <p id="mult-warning">
-          Multiple transitions selected
-        </p>
-        <div id="trans-config-inputs">
-          <p>
-            <label for="trans-char">Transition character:</label>
-            <input id="trans-char">
-          </p>
-          <p>
-            <input type="checkbox" id="epsilon-trans">
-            <label for="epsilon-trans">Epsilon transition</label>
-          </p>
-          <fieldset>
-            <legend>Arrow type</legend>
-            <input type="radio" id="line-choice" name="arrow-type" value="line">
-            <label for="line-choice">Line</label>
-            <input type="radio" id="bezier-choice" name="arrow-type" value="bezier">
-            <label for="bezier-choice">Bezier curve</label>
-            <p id="line-options">
-              <input type="checkbox" id="shortest-line">
-              <label for="shortest-line">Shortest line</label>
-            </p>
-          </fieldset>
-        </div>
+
+    <div id="config-menu-container" class="none">
+      <form id="trans-config">
+        <h2>Transition configuration</h2>
         <p>
-          <button type="button" id="delete">Delete</button>
+          <label for="trans-char">Transition character:</label>
+          <input id="trans-char">
         </p>
+        <p>
+          <input type="checkbox" id="epsilon-trans">
+          <label for="epsilon-trans">Epsilon transition</label>
+        </p>
+        <fieldset>
+          <legend>Arrow type</legend>
+          <input type="radio" id="line-choice" name="arrow-type" value="line">
+          <label for="line-choice">Line</label>
+          <input type="radio" id="bezier-choice" name="arrow-type" value="bezier">
+          <label for="bezier-choice">Bezier curve</label>
+          <p id="line-options">
+            <input type="checkbox" id="shortest-line">
+            <label for="shortest-line">Shortest line</label>
+          </p>
+        </fieldset>
       </form>
-      <div id="config-menu-hint">
+
+      <form id="state-config">
+        <h2>State configuration</h2>
+      </form>
+
+      <p id="mult-warning">
+        Multiple elements selected.
+      </p>
+
+      <p id="common-menu">
+        <button type="button" id="delete">Delete</button>
+      </p>
+
+      <p id="config-menu-hint">
         Drag and select something on the canvas to view configuration options.
-      </div>
+      </p>
     </div>
   </div>
 </body>

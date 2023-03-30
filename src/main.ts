@@ -10,9 +10,12 @@ import {
     DragAddStateCtx, DragEdgeCtx, DragSelectionCtx, DragStateCtx
 } from "./drag.js";
 import { PathControls } from "./path-controls.js";
+import { deselectAll } from "./selection.js";
 
 export const canvas = document.querySelector<SVGSVGElement>("#canvas");
 const addStateElem = document.querySelector<HTMLButtonElement>("#add-state");
+export const configMenuContainer =
+    document.querySelector<HTMLDivElement>("#config-menu-container");
 
 export type State = {
     name: string,
@@ -35,7 +38,7 @@ export type Edge = {
 };
 
 export const states = new Set<State>();
-const acceptingStates = new Set<State>();
+export const acceptingStates = new Set<State>();
 export const edges = new Set<Edge>();
 
 const toggleAccept = (state: State) => () => {
@@ -88,8 +91,8 @@ const startDragSelection = (evt: MouseEvent) => {
     rect.classList.add("selection");
     setAttributes(rect, ["x", "y", "width", "height"],
         init.concat([0, 0]).map(x => x.toString()));
-
-    transConfig.hideForm();
+    
+    deselectAll();
 
     dragMan.setContext(new DragSelectionCtx(init, rect));
 

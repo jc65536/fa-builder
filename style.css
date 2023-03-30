@@ -79,21 +79,9 @@
     position: fixed;
 }
 
-.hidden {
-    display: none;
-}
-
 #config-menu-container {
     grid-area: config-menu;
     width: 100%;
-}
-
-#trans-config:not(.mult-selected) #mult-warning {
-    display: none;
-}
-
-#trans-config.mult-selected #trans-config-inputs {
-    display: none;
 }
 
 #line-choice:not(:checked)~#line-options {
@@ -112,6 +100,10 @@
     user-select: none;
 }
 
-:not(.hidden)~#config-menu-hint {
+#config-menu-container:not(.none) > #config-menu-hint,
+#config-menu-container.none > #common-menu,
+#config-menu-container:not(.trans) > #trans-config,
+#config-menu-container:not(.state) > #state-config,
+#config-menu-container:not(.mult) > #mult-warning {
     display: none;
 }

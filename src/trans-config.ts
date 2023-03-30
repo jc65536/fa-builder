@@ -4,7 +4,6 @@ import {
     BezierControls, LineControls,
     ShortestLineControls
 } from "./path-controls.js";
-import { ifelse } from "./util.js";
 
 export const form = document.querySelector<HTMLFormElement>("#trans-config");
 
@@ -15,57 +14,24 @@ export const inputs = {
         lineChoice: form.querySelector<HTMLInputElement>("#line-choice"),
         bezierChoice: form.querySelector<HTMLInputElement>("#bezier-choice"),
     },
-    shortestLine: form.querySelector<HTMLInputElement>("#shortest-line"),
-    delete: form.querySelector<HTMLButtonElement>("#delete")
+    shortestLine: form.querySelector<HTMLInputElement>("#shortest-line")
 }
 
-let allSelected: Set<Edge> = null;
 let selectedEdge: Edge = null;
 
-export const showForm = (selected: Set<Edge>) => {
-    if (selected.size === 0) {
-        selectedEdge = allSelected = null;
-        return;
-    }
-
-    form.classList.remove("hidden");
-
-    if (selected.size === 1) {
-        [selectedEdge] = allSelected = selected;
-        initForm();
-    } else {
-        allSelected = selected;
-        selectedEdge = null;
-        form.classList.add("mult-selected");
-    }
-
-    allSelected.forEach(edge => edge.controls.show());
-};
-
-export const hideForm = () => {
-    if (allSelected === null)
-        return;
-
-    canvas.querySelectorAll(".edge.selected")
-        .forEach(e => e.classList.remove("selected"));
-    form.classList.remove("mult-selected");
-    form.classList.add("hidden");
-
-    allSelected.forEach(edge => edge.controls.hide());
-    selectedEdge = allSelected = null;
-};
-
-export const initForm = () => {
+export const initForm = (edge: Edge) => {
+    selectedEdge = edge;
+    
     const { transChar, epsilonTrans, shortestLine, arrowType } = inputs;
 
-    transChar.value = selectedEdge.transChar;
+    transChar.value = edge.transChar;
 
-    const isEpsilon = selectedEdge.transChar === epsilonChar;
+    const isEpsilon = edge.transChar === epsilonChar;
     transChar.disabled = epsilonTrans.checked = isEpsilon;
 
-    const controls = selectedEdge.controls;
+    const controls = edge.controls;
 
-    if (selectedEdge.startState === selectedEdge.endState) {
+    if (edge.startState === edge.endState) {
         arrowType.bezierChoice.checked = true;
         arrowType.lineChoice.disabled = true;
     } else {
@@ -73,7 +39,7 @@ export const initForm = () => {
 
         if (controls instanceof LineControls || controls instanceof ShortestLineControls) {
             arrowType.lineChoice.checked = true;
-            shortestLine.checked = selectedEdge.controls instanceof ShortestLineControls;
+            shortestLine.checked = edge.controls instanceof ShortestLineControls;
         } else if (controls instanceof BezierControls) {
             arrowType.bezierChoice.checked = true;
         }
@@ -120,25 +86,6 @@ export const changeEpsilonTrans = (evt: Event) => {
     }
 }
 
-const deleteEdge = (evt: Event) => {
-    if (allSelected === null)
-        return;
-
-    allSelected.forEach(edge => {
-        edge.startState.outEdges =
-            edge.startState.outEdges.filter(e => e !== edge);
-
-        edge.endState.inEdges =
-            edge.endState.inEdges.filter(e => e !== edge);
-
-        edge.pathElem.remove();
-        edge.textElem.remove();
-        edges.delete(edge);
-    });
-
-    hideForm();
-};
-
 const changeShortestLine = (evt: Event) => {
     if (selectedEdge === null)
         return;
@@ -172,8 +119,6 @@ const selectBezierChoice = (evt: Event) => {
 inputs.transChar.addEventListener("input", inputTransChar);
 inputs.epsilonTrans.addEventListener("change", changeEpsilonTrans);
 inputs.shortestLine.addEventListener("change", changeShortestLine);
-inputs.delete.addEventListener("click", deleteEdge);
-
 inputs.arrowType.bezierChoice.addEventListener("change", selectBezierChoice);
 inputs.arrowType.lineChoice.addEventListener("change", selectLineChoice);
 
