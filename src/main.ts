@@ -10,7 +10,7 @@ import {
     DragAddStateCtx, DragEdgeCtx, DragSelectionCtx, DragStateCtx
 } from "./drag.js";
 import { PathControls, StartingEdgeControls } from "./path-controls.js";
-import { cancelSelection } from "./selection.js";
+import { cancelSelection, deleteEdge } from "./selection.js";
 
 export const canvas = document.querySelector<SVGSVGElement>("#canvas");
 const addStateElem = document.querySelector<HTMLButtonElement>("#add-state");
@@ -41,46 +41,51 @@ export type Edge = {
 export const states = new Set<State>();
 
 export const [setStartingState, getStartingState, getStartingEdge] = (() => {
+    // Invariant: either both are null or neither is
     let startingState: State = null;
+    let startingEdge: Edge = null;
 
     const path = createSvgElement("path");
     path.classList.add("edge");
     path.id = "starting-edge";
 
-    const startingEdge: Edge = {
-        startState: null,
-        transChar: "",
-        endState: null,
-        pathElem: path,
-        textElem: null,
-        controls: null
-    };
-
     const setStartingState = (state: State) => {
-        if (startingState === null) {
-            canvas.appendChild(startingEdge.pathElem);
-            edges.add(startingEdge);
-        } else {
+        if (startingState !== null) {
             startingState.inEdges =
                 startingState.inEdges.filter(e => e !== startingEdge);
-            startingEdge.controls.hide();
+
+            startingEdge.pathElem.remove();
+            edges.delete(startingEdge);
         }
 
-        startingEdge.endState = startingState = state;
-        startingEdge.controls = new StartingEdgeControls(startingEdge);
-        startingState.inEdges.push(startingEdge);
+        if (state === null) {
+            startingEdge = null;
+        } else {
+            startingEdge = {
+                startState: null,
+                transChar: null,
+                endState: state,
+                pathElem: path,
+                textElem: null,
+                controls: null
+            };
+
+            startingEdge.controls = new StartingEdgeControls(startingEdge);
+            state.inEdges.push(startingEdge);
+            edges.add(startingEdge);
+            canvas.appendChild(path);
+        }
+
+        startingState = state;
     };
 
-    const getStartingState = () => startingState;
-    const getStartingEdge = () => startingEdge;
-
-    return [setStartingState, getStartingState, getStartingEdge];
+    return [setStartingState, () => startingState, () => startingEdge];
 })();
 
 export const acceptingStates = new Set<State>();
 export const edges = new Set<Edge>();
 
-const toggleAccept = (state: State) => () => {
+export const toggleAccept = (state: State) => {
     state.accepting = !state.accepting;
     if (state.accepting) {
         const innerCircle = createSvgElement("circle");
@@ -107,13 +112,15 @@ export const addState = (pos: Vec) => {
     trans.setTranslate(pos[0], pos[1]);
     group.transform.baseVal.appendItem(trans);
 
+    const name = `q${uniqueStr("state")}`;
+
     const text = createSvgElement("text");
-    text.textContent = `q${uniqueStr("state")}`;
+    text.textContent = name;
     text.classList.add("state-name");
     group.appendChild(text);
 
     const state: State = {
-        name: "",
+        name: name,
         accepting: false,
         gElem: group,
         textElem: text,
@@ -122,11 +129,8 @@ export const addState = (pos: Vec) => {
         outEdges: []
     };
 
-    if (getStartingState() === null)
-        setStartingState(state);
-
     group.addEventListener("mousedown", startDragOnState(state));
-    group.addEventListener("dblclick", toggleAccept(state));
+    group.addEventListener("dblclick", () => toggleAccept(state));
     states.add(state);
     canvas.appendChild(group);
 };

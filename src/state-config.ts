@@ -1,4 +1,4 @@
-import { getStartingState, setStartingState, State } from "./main.js";
+import { getStartingState, setStartingState, State, toggleAccept } from "./main.js";
 
 export const form = document.querySelector<HTMLFormElement>("#state-config");
 
@@ -26,12 +26,17 @@ const checkNull = <T>(f: (_: T) => void) => (arg: T) => {
 };
 
 export const inputStateName = checkNull((evt: Event) => {
-    selectedState.name = inputs.stateName.value;
+    selectedState.textElem.textContent
+        = selectedState.name
+        = inputs.stateName.value;
 });
 
 export const changeStarting = checkNull((evt: Event) =>
-    setStartingState(selectedState));
+    setStartingState(inputs.starting.checked ? selectedState : null));
+
+const changeAccepting = checkNull((evt: Event) => toggleAccept(selectedState));
 
 inputs.stateName.addEventListener("input", inputStateName);
 inputs.starting.addEventListener("change", changeStarting);
+inputs.accepting.addEventListener("change", changeAccepting);
 

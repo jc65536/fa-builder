@@ -1,5 +1,5 @@
 import { epsilonChar } from "./config.js";
-import { canvas, Edge, edges } from "./main.js";
+import { canvas, Edge, edges, getStartingEdge } from "./main.js";
 import {
     BezierControls, LineControls,
     ShortestLineControls,
