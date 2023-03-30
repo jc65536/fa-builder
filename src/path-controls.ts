@@ -318,9 +318,7 @@ export class StartingEdgeControls extends PathControls {
             endHandle: createHandle(mousePos => {
                 const angle = vec.atanScreenVec(vec.sub(mousePos)(this.cp.endStatePos));
                 this.cp.endAngle = angle;
-                const absCp = this.calcAbsCtrlPts();
-                this.updateEndHandle(absCp);
-                setLineCmd(this.path, absCp);
+                this.updatePath();
             })
         });
 
@@ -331,21 +329,21 @@ export class StartingEdgeControls extends PathControls {
             endStatePos: edge.endState.pos
         };
 
-        this.updateEnd(edge.endState.pos);
+        this.updatePath();
     }
 
     updateStart(pos: vec.Vec): void { }
 
     updateEnd(pos: vec.Vec): void {
         this.cp.endStatePos = pos;
-        const absCp = this.calcAbsCtrlPts();
-        this.updateEndHandle(absCp);
-        setLineCmd(this.path, absCp);
+        this.updatePath();
     }
 
-    updateEndHandle(absCp: LineCtrlPts) {
+    updatePath() {
+        const absCp = this.calcAbsCtrlPts();
         setAttributes(this.handles.endHandle, ["cx", "cy"],
             absCp.end.map(x => x.toString()));
+        setLineCmd(this.path, absCp);
     }
 
     calcAbsCtrlPts(): LineCtrlPts {
