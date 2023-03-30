@@ -6,13 +6,13 @@ import {
     createSvgElement, screenToSvgCoords, setAttributes, uniqueStr
 } from "./util.js";
 import {
-    DragAddStateCtx, DragEdgeCtx, DragSelectionCtx, DragStateCtx
+    DragAddStateCtx, DragEdgeCtx, DragSelectionCtx, DragStatesCtx
 } from "./drag.js";
 import {
     BezierControls, PathControls,
     ShortestLineControls, StartingEdgeControls
 } from "./path-controls.js";
-import { cancelSelection } from "./selection.js";
+import { cancelSelection, selectedStates } from "./selection.js";
 
 // Important DOM elements
 
@@ -198,30 +198,13 @@ const startDragOnState = (state: State) => (evt: MouseEvent) => {
 
     switch (evt.button) {
         case 0:
-            const trans = canvas.createSVGTransform();
-            trans.setTranslate(0, 0);
-
-            dragMan.setContext(new DragStateCtx(state,
-                screenToSvgCoords([evt.x, evt.y]), trans));
-
-            state.groupElem.transform.baseVal.appendItem(trans);
+            const statesToDrag = new Set<State>(selectedStates).add(state);
+            dragMan.setContext(new DragStatesCtx(statesToDrag,
+                screenToSvgCoords([evt.x, evt.y])));
             break;
 
         case 2:
-            const path = createSvgElement("path");
-            path.classList.add("edge");
-
-            dragMan.setContext(new DragEdgeCtx({
-                startState: state,
-                transChar: "",
-                endState: state,
-                pathElem: path,
-                textElem: null,
-                textPathElem: null,
-                controls: null
-            }));
-
-            canvas.appendChild(path);
+            dragMan.setContext(new DragEdgeCtx(state));
             break;
     }
 }

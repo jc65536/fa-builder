@@ -1,5 +1,5 @@
 import { stateConfig } from "./config.js";
-import { addState, Edge, State, states, edges, addEdge } from "./main.js";
+import { addState, Edge, State, states, edges, addEdge, canvas } from "./main.js";
 import {
     BezierControls, LineControls, ShortestLineControls, StartingEdgeControls
 } from "./path-controls.js";
@@ -9,7 +9,7 @@ import {
 } from "./selection.js";
 import {
     applyCTM, ifelse, setAttributes, screenToSvgCoords, lineIntersectsRect,
-    bezierIntersectsRect, setLineCmd
+    bezierIntersectsRect, setLineCmd, createSvgElement
 } from "./util.js";
 import * as vec from "./vector.js";
 import { Vec } from "./vector.js";
@@ -19,42 +19,65 @@ export abstract class DragCtx {
     abstract handleDrop(evt: MouseEvent): void;
 }
 
-export class DragStateCtx extends DragCtx {
-    state: State;
+export class DragStatesCtx extends DragCtx {
+    statesToDrag: Set<State>;
     init: Vec;
-    trans: SVGTransform;
+    transforms: Set<SVGTransform>;
 
-    constructor(state: State, init: Vec, trans: SVGTransform) {
+    constructor(statesToDrag: Set<State>, init: Vec) {
         super();
-        this.state = state;
+        this.statesToDrag = statesToDrag;
         this.init = init;
-        this.trans = trans;
+        this.transforms = new Set();
+
+        statesToDrag.forEach(state => {
+            const t = canvas.createSVGTransform();
+            t.setTranslate(0, 0);
+            this.transforms.add(t);
+            state.groupElem.transform.baseVal.appendItem(t)
+        });
     }
 
     handleDrag(evt: MouseEvent): void {
         const mousePos = screenToSvgCoords([evt.x, evt.y]);
-        const [tx, ty] = vec.sub(mousePos)(this.init);
-        this.trans.setTranslate(tx, ty);
+        const delta = vec.sub(mousePos)(this.init);
 
-        const addTrans = vec.add([tx, ty]);
-        const newPos: Vec = addTrans(this.state.pos);
+        this.transforms.forEach(t => t.setTranslate(...delta));
 
-        this.state.outEdges.forEach(edge => edge.controls.updateStart(newPos));
-        this.state.inEdges.forEach(edge => edge.controls.updateEnd(newPos));
+        this.statesToDrag.forEach(state => {
+            const newPos: Vec = vec.add(delta)(state.pos);
+            state.outEdges.forEach(edge => edge.controls.updateStart(newPos));
+            state.inEdges.forEach(edge => edge.controls.updateEnd(newPos));
+        });
     }
 
     handleDrop(evt: MouseEvent): void {
-        this.state.groupElem.transform.baseVal.consolidate();
-        this.state.pos = applyCTM([0, 0], this.state.groupElem.getCTM());
+        this.statesToDrag.forEach(state => {
+            state.groupElem.transform.baseVal.consolidate();
+            state.pos = applyCTM([0, 0], state.groupElem.getCTM());
+        });
     }
 }
 
 export class DragEdgeCtx extends DragCtx {
     edge: Edge;
 
-    constructor(edge: Edge) {
+    constructor(state: State) {
         super();
-        this.edge = edge;
+
+        const path = createSvgElement("path");
+        path.classList.add("edge");
+        canvas.appendChild(path);
+
+        this.edge = {
+            startState: state,
+            transChar: "",
+            endState: state,
+            pathElem: path,
+            textElem: null,
+            textPathElem: null,
+            controls: null
+        };
     }
 
     handleDrag(evt: MouseEvent): void {
@@ -147,13 +170,14 @@ export class DragAddStateCtx extends DragCtx {
     }
 
     handleDrag(evt: MouseEvent): void {
-        const style = this.circle.style;
-        [style.left, style.top] = vec.sub([evt.x, evt.y])(this.offset).map(n => `${n}px`);
+        [this.circle.style.left, this.circle.style.top] =
+            vec.sub([evt.x, evt.y])(this.offset).map(n => `${n}px`);
     }
 
     handleDrop(evt: MouseEvent): void {
         const rect = this.circle.getBoundingClientRect();
-        const center = vec.scale(0.5)(vec.add([rect.x, rect.y])([rect.right, rect.bottom]));
+        const center = vec.scale(0.5)
+            (vec.add([rect.x, rect.y])([rect.right, rect.bottom]));
         addState(screenToSvgCoords(center));
         this.circle.remove();
     }
