@@ -172,12 +172,9 @@ export class BezierControls extends PathControls {
             absCp.endCtrl.map(x => x.toString()));
     }
 
-    calcAbsStart() {
-        return vec.add(this.cp.startStatePos)(vec.polar(stateConfig.radius, this.cp.startAngle));
-    }
-
     calcAbsCtrlPts(): BezierCtrlPts {
-        const start = this.calcAbsStart();
+        const start = vec.add(this.cp.startStatePos)
+            (vec.polar(stateConfig.radius, this.cp.startAngle));
         const startCtrl = vec.add(start)(this.cp.startCtrlRel);
         const end = vec.add(this.cp.endStatePos)
             (vec.polar(stateConfig.radius, this.cp.endAngle));
