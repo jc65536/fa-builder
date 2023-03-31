@@ -12,12 +12,9 @@ export type LineCtrlPts = { start: Vec, end: Vec };
 
 export type BezierCtrlPts = LineCtrlPts & { startCtrl: Vec, endCtrl: Vec };
 
-type BaseCtrlPts = LineCtrlPts & { startStatePos: Vec, endStatePos: Vec };
-
 export type CtrlPts = LineCtrlPts | BezierCtrlPts;
 
 class ControlHandle {
-    pos: Vec;
     circle: SVGCircleElement;
 
     constructor(dragCallback: (_: Vec) => void) {
@@ -34,28 +31,34 @@ class ControlHandle {
     }
 
     updatePos(pos: Vec) {
-        this.pos = pos;
         setAttributes(this.circle, ["cx", "cy"], pos.map(x => x.toString()));
     }
 }
 
-type HandleMap = { [key: string]: ControlHandle };
-
 export abstract class PathControls {
     path: SVGPathElement;
+
     startGroup: SVGGElement;
     endGroup: SVGGElement;
 
-    cp: BaseCtrlPts;
+    startStatePos: Vec;
+    endStatePos: Vec;
+
+    cp: CtrlPts;
 
     // Handle objects' positions are relative to its group
-    startHandles: HandleMap;
-    endHandles: HandleMap;
+    startHandles: ControlHandle[];
+    endHandles: ControlHandle[];
 
-    constructor(edge: Edge, startHandles: HandleMap, endHandles: HandleMap) {
+    constructor(edge: Edge, startHandles: ControlHandle[],
+        endHandles: ControlHandle[]) {
         this.path = edge.pathElem;
         this.startGroup = edge.startState?.groupElem;
         this.endGroup = edge.endState.groupElem;
+        
+        this.startStatePos = edge.startState?.pos;
+        this.endStatePos = edge.endState.pos;
+
         this.startHandles = startHandles;
         this.endHandles = endHandles;
     }
@@ -65,69 +68,65 @@ export abstract class PathControls {
     abstract calcAbsCtrlPts(): CtrlPts;
 
     show() {
-        Object.values(this.startHandles)
-            .forEach(h => this.startGroup.appendChild(h.circle));
-        Object.values(this.endHandles)
-            .forEach(h => this.endGroup.appendChild(h.circle));
+        this.startHandles.forEach(h => this.startGroup.appendChild(h.circle));
+        this.endHandles.forEach(h => this.endGroup.appendChild(h.circle));
     }
 
     hide() {
-        Object.values(this.startHandles).forEach(h => h.circle.remove());
-        Object.values(this.endHandles).forEach(h => h.circle.remove());
+        this.startHandles.forEach(h => h.circle.remove());
+        this.endHandles.forEach(h => h.circle.remove());
     }
 }
 
 export class BezierControls extends PathControls {
-    cp: BaseCtrlPts & BezierCtrlPts;
+    cp: BezierCtrlPts;
 
-    startHandles: {
-        startHandle: ControlHandle,
-        startCtrlHandle: ControlHandle
-    };
-
-    endHandles: {
-        endCtrlHandle: ControlHandle,
-        endHandle: ControlHandle
-    };
+    handles: { [key in keyof BezierCtrlPts]: ControlHandle };
 
     constructor(edge: Edge) {
-        super(edge, {
-            startHandle: new ControlHandle(mousePos => {
+        const startHandles = {
+            start: new ControlHandle(mousePos => {
                 const newStart = vec.polar(stateConfig.radius,
-                    vec.atanScreenVec(vec.sub(mousePos)(this.cp.startStatePos)));
+                    vec.atanScreenVec(vec.sub(mousePos)(this.startStatePos)));
 
                 this.cp.startCtrl = vec.add(this.cp.startCtrl)
                     (vec.sub(newStart)(this.cp.start));
                 this.cp.start = newStart;
-                    
-                this.startHandles.startHandle.updatePos(this.cp.start);
-                this.startHandles.startCtrlHandle.updatePos(this.cp.startCtrl);
+
+                this.handles.start.updatePos(this.cp.start);
+                this.handles.startCtrl.updatePos(this.cp.startCtrl);
                 this.updatePath();
             }),
-            startCtrlHandle: new ControlHandle(mousePos => {
-                this.cp.startCtrl = vec.sub(mousePos)(this.cp.startStatePos);
-                this.startHandles.startCtrlHandle.updatePos(this.cp.startCtrl);
+            startCtrl: new ControlHandle(mousePos => {
+                this.cp.startCtrl = vec.sub(mousePos)(this.startStatePos);
+                this.handles.startCtrl.updatePos(this.cp.startCtrl);
                 this.updatePath();
             })
-        }, {
-            endCtrlHandle: new ControlHandle(mousePos => {
-                this.cp.endCtrl = vec.sub(mousePos)(this.cp.endStatePos);
-                this.endHandles.endCtrlHandle.updatePos(this.cp.endCtrl);
+        };
+
+        const endHandles = {
+            endCtrl: new ControlHandle(mousePos => {
+                this.cp.endCtrl = vec.sub(mousePos)(this.endStatePos);
+                this.handles.endCtrl.updatePos(this.cp.endCtrl);
                 this.updatePath();
             }),
-            endHandle: new ControlHandle(mousePos => {
+            end: new ControlHandle(mousePos => {
                 const newEnd = vec.polar(stateConfig.radius,
-                    vec.atanScreenVec(vec.sub(mousePos)(this.cp.endStatePos)))
-                
+                    vec.atanScreenVec(vec.sub(mousePos)(this.endStatePos)))
+
                 this.cp.endCtrl = vec.add(this.cp.endCtrl)
                     (vec.sub(newEnd)(this.cp.end));
                 this.cp.end = newEnd;
-                
-                this.endHandles.endHandle.updatePos(this.cp.end);
-                this.endHandles.endCtrlHandle.updatePos(this.cp.endCtrl);
+
+                this.handles.endCtrl.updatePos(this.cp.endCtrl);
+                this.handles.end.updatePos(this.cp.end);
                 this.updatePath();
             })
-        });
+        };
+
+        super(edge, Object.values(startHandles), Object.values(endHandles));
+
+        this.handles = { ...startHandles, ...endHandles };
 
         const { startState, endState } = edge;
 
@@ -137,41 +136,37 @@ export class BezierControls extends PathControls {
             const ctrlFrom = vec.add([0, -1.5 * stateConfig.radius])
 
             this.cp = {
-                startStatePos: startState.pos,
                 start: start,
                 startCtrl: ctrlFrom(start),
                 endCtrl: ctrlFrom(end),
-                end: end,
-                endStatePos: endState.pos
+                end: end
             };
         } else {
             const oldCp = edge.controls.cp;
             const ctrlFrom = vec.scale(2.5);
 
             this.cp = {
-                startStatePos: startState.pos,
                 start: oldCp.start,
                 startCtrl: ctrlFrom(oldCp.start),
                 endCtrl: ctrlFrom(oldCp.end),
-                end: oldCp.end,
-                endStatePos: endState.pos
+                end: oldCp.end
             };
         }
 
-        this.startHandles.startHandle.updatePos(this.cp.start);
-        this.startHandles.startCtrlHandle.updatePos(this.cp.startCtrl);
-        this.endHandles.endHandle.updatePos(this.cp.end);
-        this.endHandles.endCtrlHandle.updatePos(this.cp.endCtrl);
+        this.handles.start.updatePos(this.cp.start);
+        this.handles.startCtrl.updatePos(this.cp.startCtrl);
+        this.handles.endCtrl.updatePos(this.cp.endCtrl);
+        this.handles.end.updatePos(this.cp.end);
         this.updatePath();
     }
 
     updateStart(pos: Vec): void {
-        this.cp.startStatePos = pos;
+        this.startStatePos = pos;
         this.updatePath();
     }
 
     updateEnd(pos: Vec): void {
-        this.cp.endStatePos = pos;
+        this.endStatePos = pos;
         this.updatePath();
     }
 
@@ -181,51 +176,53 @@ export class BezierControls extends PathControls {
 
     calcAbsCtrlPts(): BezierCtrlPts {
         return {
-            start: vec.add(this.cp.startStatePos)(this.cp.start),
-            startCtrl: vec.add(this.cp.startStatePos)(this.cp.startCtrl),
-            endCtrl: vec.add(this.cp.endStatePos)(this.cp.endCtrl),
-            end: vec.add(this.cp.endStatePos)(this.cp.end)
+            start: vec.add(this.startStatePos)(this.cp.start),
+            startCtrl: vec.add(this.startStatePos)(this.cp.startCtrl),
+            endCtrl: vec.add(this.endStatePos)(this.cp.endCtrl),
+            end: vec.add(this.endStatePos)(this.cp.end)
         };
     }
 }
 
 export class LineControls extends PathControls {
-    cp: BaseCtrlPts & LineCtrlPts;
+    cp: LineCtrlPts;
 
-    startHandles: { startHandle: ControlHandle };
-    endHandles: { endHandle: ControlHandle };
+    handles: { [key in keyof LineCtrlPts]: ControlHandle };
+
 
     constructor(edge: Edge) {
-        super(edge, {
-            startHandle: new ControlHandle(mousePos => {
-                this.cp.start = vec.polar(stateConfig.radius,
-                    vec.atanScreenVec(vec.sub(mousePos)(this.cp.startStatePos)))
-                this.startHandles.startHandle.updatePos(this.cp.start);
-                this.updatePath();
-            })
-        }, {
-            endHandle: new ControlHandle(mousePos => {
-                this.cp.end = vec.polar(stateConfig.radius,
-                    vec.atanScreenVec(vec.sub(mousePos)(this.cp.endStatePos)));
-                this.endHandles.endHandle.updatePos(this.cp.end);
-                this.updatePath();
-            })
+        const startHandle = new ControlHandle(mousePos => {
+            this.cp.start = vec.polar(stateConfig.radius,
+                vec.atanScreenVec(vec.sub(mousePos)(this.startStatePos)))
+            this.handles.start.updatePos(this.cp.start);
+            this.updatePath();
         });
+
+        const endHandle = new ControlHandle(mousePos => {
+            this.cp.end = vec.polar(stateConfig.radius,
+                vec.atanScreenVec(vec.sub(mousePos)(this.endStatePos)));
+            this.handles.end.updatePos(this.cp.end);
+            this.updatePath();
+        });
+
+        super(edge, [startHandle], [endHandle]);
+
+        this.handles = { start: startHandle, end: endHandle };
 
         this.cp = edge.controls.cp;
 
-        this.startHandles.startHandle.updatePos(this.cp.start);
-        this.endHandles.endHandle.updatePos(this.cp.end);
+        this.handles.start.updatePos(this.cp.start);
+        this.handles.end.updatePos(this.cp.end);
         this.updatePath();
     }
 
     updateStart(pos: Vec): void {
-        this.cp.startStatePos = pos;
+        this.startStatePos = pos;
         this.updatePath();
     }
 
     updateEnd(pos: Vec): void {
-        this.cp.endStatePos = pos;
+        this.endStatePos = pos;
         this.updatePath();
     }
 
@@ -235,42 +232,34 @@ export class LineControls extends PathControls {
 
     calcAbsCtrlPts(): LineCtrlPts {
         return {
-            start: vec.add(this.cp.startStatePos)(this.cp.start),
-            end: vec.add(this.cp.endStatePos)(this.cp.end)
+            start: vec.add(this.startStatePos)(this.cp.start),
+            end: vec.add(this.endStatePos)(this.cp.end)
         };
     }
 }
 
 export class ShortestLineControls extends PathControls {
     constructor(edge: Edge) {
-        super(edge, {}, {});
+        super(edge, [], []);
 
-        const { startState, endState } = edge;
-
-        this.cp = {
-            startStatePos: startState.pos,
-            start: null,
-            end: null,
-            endStatePos: endState.pos
-        }
+        this.cp = { start: null, end: null };
 
         this.updatePath();
     }
 
     updateStart(pos: Vec): void {
-        this.cp.startStatePos = pos;
+        this.startStatePos = pos;
         this.updatePath();
     }
 
     updateEnd(pos: Vec): void {
-        this.cp.endStatePos = pos;
+        this.endStatePos = pos;
         this.updatePath();
     }
 
     updatePath() {
         this.cp.start = vec.polar(stateConfig.radius,
-            vec.angleBetweenScreenVec(this.cp.startStatePos)
-                (this.cp.endStatePos));
+            vec.angleBetweenScreenVec(this.startStatePos)(this.endStatePos));
         this.cp.end = vec.scale(-1)(this.cp.start);
 
         setLineCmd(this.path, this.calcAbsCtrlPts());
@@ -278,8 +267,8 @@ export class ShortestLineControls extends PathControls {
 
     calcAbsCtrlPts(): LineCtrlPts {
         return {
-            start: vec.add(this.cp.startStatePos)(this.cp.start),
-            end: vec.add(this.cp.endStatePos)(this.cp.end)
+            start: vec.add(this.startStatePos)(this.cp.start),
+            end: vec.add(this.endStatePos)(this.cp.end)
         };
     }
 }
@@ -287,23 +276,23 @@ export class ShortestLineControls extends PathControls {
 const startingEdgeDist = stateConfig.radius + edgeConfig.startingEdgeLength;
 
 export class StartingEdgeControls extends PathControls {
-    endHandles: { endHandle: ControlHandle };
+    handles: { end: ControlHandle };
 
     constructor(edge: Edge) {
-        super(edge, {}, {
-            endHandle: new ControlHandle(mousePos => {
-                const angle = vec.atanScreenVec(vec.sub(mousePos)(this.cp.endStatePos));
-                this.cp.start = vec.polar(startingEdgeDist, angle);
-                this.cp.end = vec.polar(stateConfig.radius, angle);
-                this.updatePath();
-            })
+        const endHandle = new ControlHandle(mousePos => {
+            const angle = vec.atanScreenVec(vec.sub(mousePos)(this.endStatePos));
+            this.cp.start = vec.polar(startingEdgeDist, angle);
+            this.cp.end = vec.polar(stateConfig.radius, angle);
+            this.updatePath();
         });
 
+        super(edge, [], [endHandle]);
+
+        this.handles.end = endHandle;
+
         this.cp = {
-            startStatePos: null,
             start: [-startingEdgeDist, 0],
-            end: [-stateConfig.radius, 0],
-            endStatePos: edge.endState.pos
+            end: [-stateConfig.radius, 0]
         };
 
         this.updatePath();
@@ -312,19 +301,19 @@ export class StartingEdgeControls extends PathControls {
     updateStart(_: vec.Vec): void { }
 
     updateEnd(pos: vec.Vec): void {
-        this.cp.endStatePos = pos;
+        this.endStatePos = pos;
         this.updatePath();
     }
 
     updatePath() {
-        this.endHandles.endHandle.updatePos(this.cp.end);
+        this.handles.end.updatePos(this.cp.end);
         setLineCmd(this.path, this.calcAbsCtrlPts());
     }
 
     calcAbsCtrlPts(): LineCtrlPts {
         return {
-            start: vec.add(this.cp.endStatePos)(this.cp.start),
-            end: vec.add(this.cp.endStatePos)(this.cp.end)
+            start: vec.add(this.endStatePos)(this.cp.start),
+            end: vec.add(this.endStatePos)(this.cp.end)
         }
     }
 }
