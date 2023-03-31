@@ -89,6 +89,7 @@
 }
 
 .control-handle {
+    stroke: none;
     fill: var(--handle-fill);
     cursor: crosshair;
 }
