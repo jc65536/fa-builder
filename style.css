@@ -113,3 +113,11 @@
 #config-menu-container:not(.mult) > #mult-warning {
     display: none;
 }
+
+#analysis-container {
+    grid-area: analysis;
+}
+
+#analysis-warning:empty {
+    display: none;
+}

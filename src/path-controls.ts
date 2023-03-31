@@ -62,7 +62,7 @@ export abstract class PathControls {
 
         if (startState !== null)
             startHandles.forEach(initTransform(startState));
-        
+
         endHandles.forEach(initTransform(endState));
     }
 
@@ -280,16 +280,16 @@ export class StartingEdgeControls extends PathControls {
     handles: { end: ControlHandle };
 
     constructor(edge: Edge) {
-        const endHandle = new ControlHandle(mousePos => {
+        const end = new ControlHandle(mousePos => {
             const angle = vec.atanScreenVec(vec.sub(mousePos)(this.endStatePos));
             this.cp.start = vec.polar(startingEdgeDist, angle);
             this.cp.end = vec.polar(stateConfig.radius, angle);
             this.updatePath();
         });
 
-        super(edge, [], [endHandle]);
+        super(edge, [], [end]);
 
-        this.handles.end = endHandle;
+        this.handles = { end };
 
         this.cp = {
             start: [-startingEdgeDist, 0],

@@ -13,6 +13,7 @@ import {
     ShortestLineControls, StartingEdgeControls
 } from "./path-controls.js";
 import { cancelSelection, selectedStates } from "./selection.js";
+import { analyze } from "./analysis.js";
 
 // Important DOM elements
 
@@ -87,6 +88,8 @@ export const [setStartingState, getStartingState, getStartingEdge] = (() => {
         }
 
         startingState = state;
+
+        analyze();
     };
 
     return [setStartingState, () => startingState, () => startingEdge];
@@ -143,6 +146,8 @@ export const addState = (pos: Vec) => {
     group.addEventListener("dblclick", () => toggleAccept(state));
     states.add(state);
     stateLayer.appendChild(group);
+
+    analyze();
 };
 
 export const deleteState = (state: State) => {
@@ -157,6 +162,8 @@ export const deleteState = (state: State) => {
 
     state.groupElem.remove();
     states.delete(state);
+
+    analyze();
 };
 
 export const addEdge = (edge: Edge) => {
@@ -185,6 +192,8 @@ export const addEdge = (edge: Edge) => {
     transCharContainer.appendChild(textPath);
 
     edgeLayer.appendChild(transCharContainer);
+
+    analyze();
 }
 
 export const deleteEdge = (edge: Edge) => {
@@ -197,6 +206,8 @@ export const deleteEdge = (edge: Edge) => {
         edge.textElem.remove();
         edges.delete(edge);
     }
+
+    analyze();
 };
 
 // Drag initialization functions
