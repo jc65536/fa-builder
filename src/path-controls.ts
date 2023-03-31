@@ -1,7 +1,7 @@
 import * as vec from "./vector.js";
 import * as dragMan from "./drag-manager.js";
 import { ctrlHandleConfig, edgeConfig, stateConfig } from "./config.js";
-import { canvas, Edge, State } from "./main.js";
+import { canvas, Edge, State, topLayer } from "./main.js";
 import {
     createSvgElement, setAttributes, setBezierCmd, setLineCmd
 } from "./util.js";
@@ -14,7 +14,7 @@ export type BezierCtrlPts = LineCtrlPts & { startCtrl: Vec, endCtrl: Vec };
 
 export type CtrlPts = LineCtrlPts | BezierCtrlPts;
 
-class ControlHandle {
+export class ControlHandle {
     circle: SVGCircleElement;
 
     constructor(dragCallback: (_: Vec) => void) {
@@ -38,29 +38,32 @@ class ControlHandle {
 export abstract class PathControls {
     path: SVGPathElement;
 
-    startGroup: SVGGElement;
-    endGroup: SVGGElement;
+    cp: CtrlPts;
+    handles: { [key: string]: ControlHandle };
 
     startStatePos: Vec;
     endStatePos: Vec;
 
-    cp: CtrlPts;
-
-    // Handle objects' positions are relative to its group
-    startHandles: ControlHandle[];
-    endHandles: ControlHandle[];
-
     constructor(edge: Edge, startHandles: ControlHandle[],
         endHandles: ControlHandle[]) {
         this.path = edge.pathElem;
-        this.startGroup = edge.startState?.groupElem;
-        this.endGroup = edge.endState.groupElem;
-        
-        this.startStatePos = edge.startState?.pos;
-        this.endStatePos = edge.endState.pos;
 
-        this.startHandles = startHandles;
-        this.endHandles = endHandles;
+        const { startState, endState } = edge;
+
+        this.startStatePos = startState?.pos;
+        this.endStatePos = endState.pos;
+
+        const initTransform = (state: State) => (handle: ControlHandle) => {
+            handle.circle.transform.baseVal
+                .appendItem(canvas.createSVGTransform())
+                .setTranslate(...state.pos);
+            state.handles.add(handle);
+        };
+
+        if (startState !== null)
+            startHandles.forEach(initTransform(startState));
+        
+        endHandles.forEach(initTransform(endState));
     }
 
     abstract updateStart(pos: Vec): void;
@@ -68,19 +71,17 @@ export abstract class PathControls {
     abstract calcAbsCtrlPts(): CtrlPts;
 
     show() {
-        this.startHandles.forEach(h => this.startGroup.appendChild(h.circle));
-        this.endHandles.forEach(h => this.endGroup.appendChild(h.circle));
+        Object.values(this.handles)
+            .forEach(h => topLayer.appendChild(h.circle));
     }
 
     hide() {
-        this.startHandles.forEach(h => h.circle.remove());
-        this.endHandles.forEach(h => h.circle.remove());
+        Object.values(this.handles).forEach(h => h.circle.remove());
     }
 }
 
 export class BezierControls extends PathControls {
     cp: BezierCtrlPts;
-
     handles: { [key in keyof BezierCtrlPts]: ControlHandle };
 
     constructor(edge: Edge) {
@@ -186,7 +187,6 @@ export class BezierControls extends PathControls {
 
 export class LineControls extends PathControls {
     cp: LineCtrlPts;
-
     handles: { [key in keyof LineCtrlPts]: ControlHandle };
 
 
@@ -243,6 +243,7 @@ export class ShortestLineControls extends PathControls {
         super(edge, [], []);
 
         this.cp = { start: null, end: null };
+        this.handles = {};
 
         this.updatePath();
     }

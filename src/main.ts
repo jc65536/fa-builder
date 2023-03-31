@@ -9,7 +9,7 @@ import {
     DragAddStateCtx, DragEdgeCtx, DragSelectionCtx, DragStatesCtx
 } from "./drag.js";
 import {
-    BezierControls, PathControls,
+    BezierControls, ControlHandle, PathControls,
     ShortestLineControls, StartingEdgeControls
 } from "./path-controls.js";
 import { cancelSelection, selectedStates } from "./selection.js";
@@ -37,7 +37,8 @@ export type State = {
     textElem: SVGTextElement,
     pos: Vec,
     inEdges: Set<Edge>,
-    outEdges: Set<Edge>
+    outEdges: Set<Edge>,
+    handles: Set<ControlHandle>
 };
 
 export type Edge = {
@@ -134,7 +135,8 @@ export const addState = (pos: Vec) => {
         textElem: text,
         pos: pos,
         inEdges: new Set(),
-        outEdges: new Set()
+        outEdges: new Set(),
+        handles: new Set()
     };
 
     group.addEventListener("mousedown", startDragOnState(state));

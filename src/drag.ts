@@ -1,7 +1,7 @@
 import { stateConfig } from "./config.js";
-import { addState, Edge, State, states, edges, addEdge, canvas, stateLayer, edgeLayer } from "./main.js";
+import { addState, Edge, State, states, edges, addEdge, canvas, stateLayer, edgeLayer, topLayer } from "./main.js";
 import {
-    BezierControls, LineControls, ShortestLineControls, StartingEdgeControls
+    BezierControls, ControlHandle, LineControls, ShortestLineControls, StartingEdgeControls
 } from "./path-controls.js";
 import {
     deselectEdge, deselectState, selectEdge,
@@ -22,6 +22,7 @@ export abstract class DragCtx {
 export class DragStatesCtx extends DragCtx {
     init: Vec;
     statesToDrag: Set<State>;
+    handlesToDrag: Set<SVGCircleElement>;
     dragGroup: SVGGElement;
     transform: SVGTransform;
 
@@ -29,6 +30,7 @@ export class DragStatesCtx extends DragCtx {
         super();
         this.init = init;
         this.statesToDrag = statesToDrag;
+        this.handlesToDrag = new Set();
 
         this.dragGroup = createSvgElement("g");
         canvas.appendChild(this.dragGroup);
@@ -38,7 +40,16 @@ export class DragStatesCtx extends DragCtx {
             .appendItem(this.transform)
             .setTranslate(0, 0);
 
-        this.statesToDrag.forEach(s => this.dragGroup.appendChild(s.groupElem));
+        this.statesToDrag.forEach(s => {
+            this.dragGroup.appendChild(s.groupElem);
+
+            s.handles.forEach(({ circle }) => {
+                if (topLayer.contains(circle)) {
+                    this.dragGroup.appendChild(circle);
+                    this.handlesToDrag.add(circle);
+                }
+            })
+        });
     }
 
     updatePos(evt: MouseEvent) {
@@ -63,15 +74,22 @@ export class DragStatesCtx extends DragCtx {
     handleDrop(evt: MouseEvent): void {
         const delta = this.updatePos(evt);
 
-        this.statesToDrag.forEach(state => {
-            state.groupElem.transform.baseVal
+        const updateTransform = (elem: SVGGraphicsElement) => {
+            elem.transform.baseVal
                 .appendItem(canvas.createSVGTransform())
                 .setTranslate(...delta);
-            state.groupElem.transform.baseVal.consolidate();
+            elem.transform.baseVal.consolidate();
+        };
+
+        this.statesToDrag.forEach(state => {
+            updateTransform(state.groupElem);
+            state.handles.forEach(h => updateTransform(h.circle));
 
             state.pos = vec.add(state.pos)(delta);
             stateLayer.appendChild(state.groupElem);
         });
+
+        this.handlesToDrag.forEach(circle => topLayer.appendChild(circle));
 
         this.dragGroup.remove();
     }
