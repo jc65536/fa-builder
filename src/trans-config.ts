@@ -1,3 +1,4 @@
+import { analyze } from "./analysis.js";
 import { epsilonChar } from "./config.js";
 import { Edge } from "./main.js";
 import {
@@ -63,6 +64,8 @@ export const inputTransChar = checkNull((evt: Event) => {
     }
 
     selectedEdge.textPathElem.textContent = transChar.value;
+
+    analyze();
 });
 
 export const changeEpsilonTrans = checkNull((evt: Event) => {

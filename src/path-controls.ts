@@ -144,7 +144,8 @@ export class BezierControls extends PathControls {
             };
         } else {
             const oldCp = edge.controls.cp;
-            const ctrlFrom = vec.scale(2.5);
+            const ctrlFrom = vec.scale(1 / 3 + vec.dist(startState.pos,
+                endState.pos) / (3 * stateConfig.radius));
 
             this.cp = {
                 start: oldCp.start,
@@ -260,7 +261,7 @@ export class ShortestLineControls extends PathControls {
 
     updatePath() {
         this.cp.start = vec.polar(stateConfig.radius,
-            vec.angleBetweenScreenVec(this.startStatePos)(this.endStatePos));
+            vec.atanScreenVec(vec.sub(this.startStatePos)(this.endStatePos)));
         this.cp.end = vec.scale(-1)(this.cp.start);
 
         setLineCmd(this.path, this.calcAbsCtrlPts());
