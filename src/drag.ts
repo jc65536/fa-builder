@@ -1,11 +1,11 @@
 import { stateConfig } from "./config.js";
-import { addState, Edge, State, states, edges, addEdge, canvas } from "./main.js";
+import { addState, Edge, State, states, edges, addEdge, canvas, stateLayer, edgeLayer } from "./main.js";
 import {
     BezierControls, LineControls, ShortestLineControls, StartingEdgeControls
 } from "./path-controls.js";
 import {
     deselectEdge, deselectState, selectEdge,
-    selectState, finishSelection
+    selectState, finishSelection, selectedStates
 } from "./selection.js";
 import {
     applyCTM, ifelse, setAttributes, screenToSvgCoords, lineIntersectsRect,
@@ -20,42 +20,60 @@ export abstract class DragCtx {
 }
 
 export class DragStatesCtx extends DragCtx {
-    statesToDrag: Set<State>;
     init: Vec;
-    transforms: Set<SVGTransform>;
+    statesToDrag: Set<State>;
+    dragGroup: SVGGElement;
+    transform: SVGTransform;
 
     constructor(statesToDrag: Set<State>, init: Vec) {
         super();
-        this.statesToDrag = statesToDrag;
         this.init = init;
-        this.transforms = new Set();
+        this.statesToDrag = statesToDrag;
 
-        statesToDrag.forEach(state => {
-            const t = canvas.createSVGTransform();
-            t.setTranslate(0, 0);
-            this.transforms.add(t);
-            state.groupElem.transform.baseVal.appendItem(t)
-        });
+        this.dragGroup = createSvgElement("g");
+        canvas.appendChild(this.dragGroup);
+
+        this.transform = canvas.createSVGTransform();
+        this.dragGroup.transform.baseVal
+            .appendItem(this.transform)
+            .setTranslate(0, 0);
+
+        this.statesToDrag.forEach(s => this.dragGroup.appendChild(s.groupElem));
     }
 
-    handleDrag(evt: MouseEvent): void {
+    updatePos(evt: MouseEvent) {
         const mousePos = screenToSvgCoords([evt.x, evt.y]);
         const delta = vec.sub(mousePos)(this.init);
 
-        this.transforms.forEach(t => t.setTranslate(...delta));
+        this.transform.setTranslate(...delta);
 
         this.statesToDrag.forEach(state => {
             const newPos: Vec = vec.add(delta)(state.pos);
             state.outEdges.forEach(edge => edge.controls.updateStart(newPos));
             state.inEdges.forEach(edge => edge.controls.updateEnd(newPos));
         });
+
+        return delta;
+    }
+
+    handleDrag(evt: MouseEvent): void {
+        this.updatePos(evt);
     }
 
     handleDrop(evt: MouseEvent): void {
+        const delta = this.updatePos(evt);
+
         this.statesToDrag.forEach(state => {
+            state.groupElem.transform.baseVal
+                .appendItem(canvas.createSVGTransform())
+                .setTranslate(...delta);
             state.groupElem.transform.baseVal.consolidate();
-            state.pos = applyCTM([0, 0], state.groupElem.getCTM());
+
+            state.pos = vec.add(state.pos)(delta);
+            stateLayer.appendChild(state.groupElem);
         });
+
+        this.dragGroup.remove();
     }
 }
 
@@ -67,7 +85,7 @@ export class DragEdgeCtx extends DragCtx {
 
         const path = createSvgElement("path");
         path.classList.add("edge");
-        canvas.appendChild(path);
+        edgeLayer.appendChild(path);
 
         this.edge = {
             startState: state,
