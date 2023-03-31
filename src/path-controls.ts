@@ -261,7 +261,7 @@ export class ShortestLineControls extends PathControls {
 
     updatePath() {
         this.cp.start = vec.polar(stateConfig.radius,
-            vec.atanScreenVec(vec.sub(this.startStatePos)(this.endStatePos)));
+            vec.atanScreenVec(vec.sub(this.endStatePos)(this.startStatePos)));
         this.cp.end = vec.scale(-1)(this.cp.start);
 
         setLineCmd(this.path, this.calcAbsCtrlPts());

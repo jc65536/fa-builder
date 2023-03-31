@@ -123,8 +123,8 @@ export class DragEdgeCtx extends DragCtx {
 
         this.edge.endState = endState;
 
-        const angle = vec.atanScreenVec(vec.sub(this.edge.startState.pos)
-            (endState === undefined ? mousePos : endState.pos));
+        const endPos = endState === undefined ? mousePos : endState.pos;
+        const angle = vec.atanScreenVec(vec.sub(endPos)(this.edge.startState.pos));
         const radius = vec.polar(stateConfig.radius, angle);
         const start = vec.add(this.edge.startState.pos)(radius);
         const end = endState === undefined ? mousePos : vec.sub(endState.pos)(radius);
