@@ -109,6 +109,8 @@ export const toggleAccept = (state: State) => {
         state.groupElem.querySelector(".inner-circle").remove();
         acceptingStates.delete(state);
     }
+
+    analyze();
 };
 
 export const addState = (pos: Vec) => {

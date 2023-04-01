@@ -1,24 +1,100 @@
-import { getStartingState, State } from "./main.js";
+import * as list from "./list.js";
+import { List } from "./list.js";
+import { acceptingStates, Edge, getStartingState, State } from "./main.js";
 
 const analysisWarning =
     document.querySelector<HTMLParagraphElement>("#analysis-warning");
 
-type Link = {
+const setAnalysisWarning = (str: string) => analysisWarning.textContent = str;
 
+/*
+ * Idea: traverse the graph depth-first.
+ * When we encounter a loop, start growing a LoopFrag
+ * On the way back up the traversal, we add to the LoopFrag
+ * When we reach the state indicated in the LoopFrag we have completed the loop,
+ * which means we can add (loop)* to any existing fragments.
+ */
+
+type LoopFrag = {
+    frag: string,
+    state: State
 };
 
-const generateRegex = (state: State, acc: Link[]) => {
+const fmt_repeat = (s: string) => {
+    if (s === "")
+        return s;
+    else if (s.length === 1)
+        return `${s}*`;
+    else
+        return `(${s})*`;
+};
+
+const fmt_alternate = (s: string[]) => {
+    if (s.length <= 1)
+        return s.join();
+    else
+        return `(${s.join("|")})`;
+};
+
+const generateRegex = (state: State, edgesTaken: List<Edge>):
+    [string, LoopFrag[]] => {
+    const outEdges = [...state.outEdges];
+
+    if (outEdges.some(e => e.transChar === "")) {
+        setAnalysisWarning(`Error: unknown transition from ${state.name || "(unnamed)"}`);
+        return [null, []];
+    }
+
+    const detectLoop = (ls: List<Edge>): boolean => {
+        return ls !== null && (ls.val.startState === state || detectLoop(ls.next));
+    };
+
+    const lastTransChar = edgesTaken?.val.transChar ?? "";
+
+    if (detectLoop(edgesTaken)) {
+        return [null, [{ frag: lastTransChar, state }]];
+    } else {
+        const [frags, loopFrags] = outEdges
+            .reduce<[string[], LoopFrag[]]>(([frags, loopFrags], edge) => {
+                const [f, lfs] = generateRegex(edge.endState, list.cons(edge)(edgesTaken));
+                return [frags.concat(f ?? []), loopFrags.concat(lfs)];
+            }, [[], []]);
+
+        const loops = fmt_repeat(loopFrags.filter(lf => lf.state === state)
+            .map(lf => lf.frag)
+            .join("|"));
+        
+        const thisFrag = lastTransChar + loops;
+
+        const frag = (() => {
+            if (frags.length > 0) {
+                return thisFrag + fmt_alternate(frags);
+            } else if (state.accepting) {
+                return thisFrag;
+            } else {
+                return null;
+            }
+        })();
+
+        const newLoopFrags = loopFrags.filter(lf => lf.state !== state)
+            .map(lf => ({ frag: thisFrag + lf.frag, state: lf.state }));
+
+        console.log(`state: ${state.name}, frags: ${frags}, loopFrags:
+        ${loopFrags.map(lf => lf.frag)}, loops: ${loops}, frag: ${frag},
+        newLoopFrags: ${newLoopFrags.map(lf => lf.frag)}`);
+
+        return [frag, newLoopFrags];
+    }
 }
 
 export const analyze = () => {
     if (getStartingState() === null) {
-        analysisWarning.textContent = "Error: starting state does not exist";
+        setAnalysisWarning("Error: starting state does not exist");
         return;
     }
 
-    analysisWarning.textContent = "";
+    setAnalysisWarning("");
 
-    const regex = generateRegex(getStartingState(), []);
-
+    const regex = generateRegex(getStartingState(), null);
     console.log(regex);
 };
