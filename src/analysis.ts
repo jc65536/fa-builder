@@ -35,7 +35,7 @@ const fmt_alternate = (s: string[]) => {
     return s.length <= 1 ? joined : `(${joined})`;
 };
 
-const generateRegex = (state: State, edgesTaken: List<Edge>, lastTransChar: string):
+const generateRegex = (state: State, edgesTaken: List<Edge>):
     [string, LoopFrag[]] => {
     const outEdges = [...state.outEdges];
 
@@ -47,13 +47,14 @@ const generateRegex = (state: State, edgesTaken: List<Edge>, lastTransChar: stri
     const detectLoop = (ls: List<Edge>): boolean =>
         ls !== null && (ls.val.startState === state || detectLoop(ls.next));
 
+    const lastTransChar = edgesTaken?.val.transChar ?? "";
+
     if (detectLoop(edgesTaken)) {
         return [null, [{ frag: lastTransChar, state }]];
     } else {
         const [frags, loopFrags] = outEdges
             .reduce<[string[], LoopFrag[]]>(([frags, loopFrags], edge) => {
-                const [f, lfs] = generateRegex(edge.endState, list.cons(edge)(edgesTaken), edge.transChar);
-                console.log(`state: ${state.name}, edge: ${edge.transChar}, f: ${f}, lfs: ${lfs.map(lf => lf.frag)}`);
+                const [f, lfs] = generateRegex(edge.endState, list.cons(edge)(edgesTaken));
                 return [frags.concat(f ?? []), loopFrags.concat(lfs)];
             }, [[], []]);
 
@@ -89,6 +90,6 @@ export const analyze = () => {
 
     setAnalysisWarning("");
 
-    const regex = generateRegex(getStartingState(), null, "");
+    const regex = generateRegex(getStartingState(), null);
     console.log(regex);
 };
