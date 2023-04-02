@@ -1,3 +1,4 @@
+import { epsilonChar } from "./config.js";
 import * as list from "./list.js";
 import { List } from "./list.js";
 import { acceptingStates, Edge, getStartingState, State } from "./main.js";
@@ -30,13 +31,11 @@ const fmt_repeat = (s: string) => {
 };
 
 const fmt_alternate = (s: string[]) => {
-    if (s.length <= 1)
-        return s.join();
-    else
-        return `(${s.join("|")})`;
+    const joined = s.join("|");
+    return s.length <= 1 ? joined : `(${joined})`;
 };
 
-const generateRegex = (state: State, edgesTaken: List<Edge>):
+const generateRegex = (state: State, edgesTaken: List<Edge>, lastTransChar: string):
     [string, LoopFrag[]] => {
     const outEdges = [...state.outEdges];
 
@@ -45,30 +44,29 @@ const generateRegex = (state: State, edgesTaken: List<Edge>):
         return [null, []];
     }
 
-    const detectLoop = (ls: List<Edge>): boolean => {
-        return ls !== null && (ls.val.startState === state || detectLoop(ls.next));
-    };
-
-    const lastTransChar = edgesTaken?.val.transChar ?? "";
+    const detectLoop = (ls: List<Edge>): boolean =>
+        ls !== null && (ls.val.startState === state || detectLoop(ls.next));
 
     if (detectLoop(edgesTaken)) {
         return [null, [{ frag: lastTransChar, state }]];
     } else {
         const [frags, loopFrags] = outEdges
             .reduce<[string[], LoopFrag[]]>(([frags, loopFrags], edge) => {
-                const [f, lfs] = generateRegex(edge.endState, list.cons(edge)(edgesTaken));
+                const [f, lfs] = generateRegex(edge.endState, list.cons(edge)(edgesTaken), edge.transChar);
+                console.log(`state: ${state.name}, edge: ${edge.transChar}, f: ${f}, lfs: ${lfs.map(lf => lf.frag)}`);
                 return [frags.concat(f ?? []), loopFrags.concat(lfs)];
             }, [[], []]);
 
         const loops = fmt_repeat(loopFrags.filter(lf => lf.state === state)
             .map(lf => lf.frag)
             .join("|"));
-        
+
         const thisFrag = lastTransChar + loops;
 
         const frag = (() => {
             if (frags.length > 0) {
-                return thisFrag + fmt_alternate(frags);
+                const epsilonIfAccepting = state.accepting ? [epsilonChar] : [];
+                return thisFrag + fmt_alternate(epsilonIfAccepting.concat(frags));
             } else if (state.accepting) {
                 return thisFrag;
             } else {
@@ -78,10 +76,6 @@ const generateRegex = (state: State, edgesTaken: List<Edge>):
 
         const newLoopFrags = loopFrags.filter(lf => lf.state !== state)
             .map(lf => ({ frag: thisFrag + lf.frag, state: lf.state }));
-
-        console.log(`state: ${state.name}, frags: ${frags}, loopFrags:
-        ${loopFrags.map(lf => lf.frag)}, loops: ${loops}, frag: ${frag},
-        newLoopFrags: ${newLoopFrags.map(lf => lf.frag)}`);
 
         return [frag, newLoopFrags];
     }
@@ -95,6 +89,6 @@ export const analyze = () => {
 
     setAnalysisWarning("");
 
-    const regex = generateRegex(getStartingState(), null);
+    const regex = generateRegex(getStartingState(), null, "");
     console.log(regex);
 };
