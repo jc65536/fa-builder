@@ -15,3 +15,9 @@ export const scale = (c: number) => (v: Vec): Vec =>
     [c * v[0], c * v[1]];
 
 export const atanScreenVec = ([x, y]: Vec) => Math.atan2(-y, x);
+
+export const rotateScreenVec = (a: number) => (v: Vec) => {
+    const cos = Math.cos(a);
+    const sin = -Math.sin(a);
+    return add(scale(v[0])([cos, sin]))(scale(v[1])([-sin, cos]));
+};

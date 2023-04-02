@@ -84,7 +84,7 @@ export class BezierControls extends PathControls {
     cp: BezierCtrlPts;
     handles: { [key in keyof BezierCtrlPts]: ControlHandle };
 
-    constructor(edge: Edge) {
+    constructor(edge: Edge, shifted: boolean) {
         const startHandles = {
             start: new ControlHandle(mousePos => {
                 const newStart = vec.polar(stateConfig.radius,
@@ -144,15 +144,29 @@ export class BezierControls extends PathControls {
             };
         } else {
             const oldCp = edge.controls.cp;
-            const ctrlFrom = vec.scale(1 / 3 + vec.dist(startState.pos,
-                endState.pos) / (3 * stateConfig.radius));
+            const oldAbsCp = edge.controls.calcAbsCtrlPts();
+            const ctrlFrom = vec.scale(1 + vec.dist(oldAbsCp.start,
+                oldAbsCp.end) / (3 * stateConfig.radius));
 
-            this.cp = {
-                start: oldCp.start,
-                startCtrl: ctrlFrom(oldCp.start),
-                endCtrl: ctrlFrom(oldCp.end),
-                end: oldCp.end
-            };
+            if (shifted) {
+                const pi6 = Math.PI / 6;
+                const start = vec.rotateScreenVec(pi6)(oldCp.start);
+                const end = vec.rotateScreenVec(-pi6)(oldCp.end);
+
+                this.cp = {
+                    start,
+                    startCtrl: ctrlFrom(start),
+                    endCtrl: ctrlFrom(end),
+                    end
+                };
+            } else {
+                this.cp = {
+                    start: oldCp.start,
+                    startCtrl: ctrlFrom(oldCp.start),
+                    endCtrl: ctrlFrom(oldCp.end),
+                    end: oldCp.end
+                };
+            }
         }
 
         this.handles.start.updatePos(this.cp.start);

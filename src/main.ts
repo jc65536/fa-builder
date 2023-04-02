@@ -169,9 +169,17 @@ export const deleteState = (state: State) => {
 };
 
 export const addEdge = (edge: Edge) => {
-    const controlsType = edge.startState === edge.endState ?
-        BezierControls : ShortestLineControls;
-    edge.controls = new controlsType(edge);
+    if (edge.startState === edge.endState) {
+        edge.controls = new BezierControls(edge, false);
+    } else {
+        edge.startState.outEdges.forEach(e => {
+            if (e.endState === edge.endState &&
+                e.controls instanceof ShortestLineControls)
+                e.controls = new BezierControls(e, true);
+        });
+
+        edge.controls = new ShortestLineControls(edge);
+    }
 
     edges.add(edge);
     edge.startState.outEdges.add(edge);

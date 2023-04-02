@@ -103,7 +103,7 @@ const selectLineChoice = checkNull((evt: Event) => {
 
 const selectBezierChoice = checkNull((evt: Event) => {
     selectedEdge.controls.hide();
-    selectedEdge.controls = new BezierControls(selectedEdge);
+    selectedEdge.controls = new BezierControls(selectedEdge, false);
     selectedEdge.controls.show();
 });
 
