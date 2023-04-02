@@ -1,12 +1,13 @@
-import { epsilonChar } from "./config.js";
 import * as list from "./list.js";
 import { List } from "./list.js";
-import { acceptingStates, Edge, getStartingState, State } from "./main.js";
+import { Edge, getStartingState, State } from "./main.js";
 
-const analysisWarning =
-    document.querySelector<HTMLParagraphElement>("#analysis-warning");
+const analysisError =
+    document.querySelector<HTMLParagraphElement>("#analysis-error");
 
-const setAnalysisWarning = (str: string) => analysisWarning.textContent = str;
+const regexOutput = document.querySelector<HTMLSpanElement>("#regex-output");
+
+const setAnalysisError = (str: string) => analysisError.textContent = str;
 
 /*
  * Idea: traverse the graph depth-first.
@@ -30,35 +31,40 @@ const fmt_repeat = (s: string) => {
         return `(${s})*`;
 };
 
-const fmt_alternate = (s: string[]) => {
+const fmt_alternate = (s: string[], optional: boolean) => {
     const joined = s.join("|");
-    return s.length <= 1 ? joined : `(${joined})`;
+    if (optional)
+        return `[${joined}]`;
+    else if (s.length <= 1)
+        return joined;
+    else
+        return `(${joined})`;
 };
 
-const detectLoop = (state: State, ls: List<Edge>): boolean =>
-    ls !== null && (ls.val.startState === state || detectLoop(state, ls.next));
-
-const generateRegex = (state: State, edgesTaken: List<Edge>):
+const generateRegex = (state: State, history: List<Edge>):
     [string, LoopFrag[]] => {
     const outEdges = [...state.outEdges];
 
-    if (outEdges.some(e => e.transChar === "")) {
-        setAnalysisWarning(`Error: unknown transition from ${state.name || "(unnamed)"}`);
-        return [null, []];
-    }
+    if (outEdges.some(e => e.transChar === ""))
+        throw `Error: unknown transition from ${state.name || "(unnamed)"}`;
 
-    const lastTransChar = edgesTaken?.val.transChar ?? "";
+    const lastTransChar = history?.val.transChar ?? "";
 
-    if (detectLoop(state, edgesTaken))
+    const detectLoop = (ls: List<Edge>): boolean =>
+        ls !== null && (ls.val.startState === state || detectLoop(ls.next));
+
+    if (detectLoop(history))
         return [null, [{ frag: lastTransChar, state }]];
 
     const [frags, loopFrags] = outEdges
         .reduce<[string[], LoopFrag[]]>(([frags, loopFrags], edge) => {
-            const [f, lfs] = generateRegex(edge.endState, list.cons(edge)(edgesTaken));
+            const [f, lfs] = generateRegex(edge.endState,
+                list.cons(edge)(history));
             return [frags.concat(f ?? []), loopFrags.concat(lfs)];
         }, [[], []]);
 
-    const loops = fmt_repeat(loopFrags.filter(lf => lf.state === state)
+    const loops = fmt_repeat(loopFrags
+        .filter(lf => lf.state === state)
         .map(lf => lf.frag)
         .join("|"));
 
@@ -68,26 +74,33 @@ const generateRegex = (state: State, edgesTaken: List<Edge>):
     const newFrag = (() => {
         if (frags.length === 0)
             return state.accepting ? currFrag : null;
-        else if (state.accepting)
-            return currFrag + fmt_alternate([epsilonChar, ...frags]);
         else
-            return currFrag + fmt_alternate(frags);
+            return currFrag + fmt_alternate(frags, state.accepting);
     })();
 
     const newLoopFrags = loopFrags.filter(lf => lf.state !== state)
         .map(lf => ({ ...lf, frag: currFrag + lf.frag }));
 
     return [newFrag, newLoopFrags];
-}
+};
 
-export const analyze = () => {
+export const analyze = async () => {
     if (getStartingState() === null) {
-        setAnalysisWarning("Error: starting state does not exist");
+        setAnalysisError("Error: starting state does not exist");
         return;
     }
 
-    setAnalysisWarning("");
+    setAnalysisError("");
 
-    const regex = generateRegex(getStartingState(), null);
-    console.log(regex);
+    try {
+        const [regex, loopFrags] = generateRegex(getStartingState(), null);
+
+        if (loopFrags.length > 0)
+            throw `Error: regex analysis returned with loop frags
+                   ${loopFrags.map(lf => lf.frag)} (contact Jason)`;
+
+        regexOutput.textContent = regex;
+    } catch (e) {
+        setAnalysisError(e);
+    }
 };

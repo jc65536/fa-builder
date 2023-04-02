@@ -1,14 +1,17 @@
 import { stateConfig } from "./config.js";
-import { addState, Edge, State, states, edges, addEdge, canvas, stateLayer, edgeLayer, topLayer } from "./main.js";
 import {
-    BezierControls, ControlHandle, LineControls, ShortestLineControls, StartingEdgeControls
+    addState, Edge,
+    State, states, edges, addEdge, canvas, stateLayer, edgeLayer, topLayer
+} from "./main.js";
+import {
+    BezierControls, LineControls, ShortestLineControls, StartingEdgeControls
 } from "./path-controls.js";
 import {
     deselectEdge, deselectState, selectEdge,
-    selectState, finishSelection, selectedStates
+    selectState, finishSelection
 } from "./selection.js";
 import {
-    applyCTM, ifelse, setAttributes, screenToSvgCoords, lineIntersectsRect,
+    ifelse, setAttributes, screenToSvgCoords, lineIntersectsRect,
     bezierIntersectsRect, setLineCmd, createSvgElement
 } from "./util.js";
 import * as vec from "./vector.js";

@@ -99,6 +99,7 @@
     font: 1.25rem sans-serif;
     user-select: none;
     fill: var(--fa-stroke);
+    user-select: none;
 }
 
 .state-name {
@@ -118,6 +119,14 @@
     grid-area: analysis;
 }
 
-#analysis-warning:empty {
+#analysis-error:empty {
     display: none;
+}
+
+#analysis-error:not(:empty)~* {
+    display: none;
+}
+
+#regex-output {
+    font-family: monospace;
 }

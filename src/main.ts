@@ -178,6 +178,12 @@ export const addEdge = (edge: Edge) => {
                 e.controls = new BezierControls(e, true);
         });
 
+        edge.endState.outEdges.forEach(e => {
+            if (e.endState === edge.startState &&
+                e.controls instanceof ShortestLineControls)
+                e.controls = new BezierControls(e, true);
+        });
+
         edge.controls = new ShortestLineControls(edge);
     }
 
