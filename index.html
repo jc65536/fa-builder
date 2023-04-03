@@ -20,7 +20,7 @@
 <body>
   <h1>fa-builder</h1>
   <div id="app-container">
-    <svg id="canvas">
+    <svg id="canvas" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <!-- A marker to be used as an arrowhead -->
         <marker id="arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="6" markerHeight="6"
@@ -88,6 +88,13 @@
       </p>
     </div>
 
+    <div id="global-menu-container">
+      <button id="save">Save Canvas</button>
+      <button id="load">Load Canvas</button>
+      <button id="export">Export SVG</button>
+      <a href="#help">Help</a>
+    </div>
+
     <div id="analysis-container">
       <h2>Analysis</h2>
       <p id="analysis-error"></p>
@@ -95,7 +102,7 @@
     </div>
   </div>
 
-  <h2>Help</h2>
+  <h2 id="help">Help</h2>
   <h3>States</h3>
   <p>
     Drag the circle labeled "Drag me!" onto the rectangular canvas to add a

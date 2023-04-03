@@ -1,0 +1,32 @@
+:root {
+    --fa-stroke: #000000;
+}
+
+.state {
+    stroke-width: 2;
+    stroke: var(--fa-stroke);
+    fill: none;
+}
+
+.edge {
+    stroke-width: 2;
+    stroke: var(--fa-stroke);
+    fill: none;
+    marker-end: url(#arrow);
+}
+
+#arrow {
+    fill: context-stroke;
+}
+
+.trans-char-container, .state-name {
+    text-anchor: middle;
+    font: 1.25rem sans-serif;
+    fill: var(--fa-stroke);
+    user-select: none;
+}
+
+.state-name {
+    stroke: none;
+    dominant-baseline: central;
+}

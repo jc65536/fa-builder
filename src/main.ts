@@ -1,7 +1,7 @@
 import * as vec from "./vector.js";
 import * as dragMan from "./drag-manager.js";
 import { Vec } from "./vector.js";
-import { edgeConfig, stateConfig } from "./config.js";
+import { edgeConfig, exportName, stateConfig } from "./config.js";
 import {
     createSvgElement, screenToSvgCoords, setAttributes, uniqueStr
 } from "./util.js";
@@ -27,7 +27,9 @@ const addStateElem = document.querySelector<HTMLButtonElement>("#add-state");
 export const configMenuContainer =
     document.querySelector<HTMLDivElement>("#config-menu-container");
 
-
+const saveButton = document.querySelector<HTMLButtonElement>("#save");
+const loadButton = document.querySelector<HTMLButtonElement>("#load");
+const exportButton = document.querySelector<HTMLButtonElement>("#export");
 
 // State machine data types and global structures for storing the state machine
 
@@ -295,3 +297,34 @@ const dispatchShortcut = (evt: KeyboardEvent) => {
 };
 
 document.addEventListener("keydown", dispatchShortcut);
+
+const serializer = new XMLSerializer();
+
+const downloadCanvas = async () => {
+    const style = createSvgElement("style");
+    style.textContent = await (await fetch("/automaton.css")).text();
+    canvas.prepend(style);
+
+    const serialized = serializer.serializeToString(canvas);
+    const data = `<?xml version="1.0"?>\n${serialized}`;
+
+    style.remove();
+
+    const blob = new Blob([data], { type: "image/svg+xml;charset=UTF-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = exportName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+};
+
+const saveCanvas = () => {
+};
+
+const loadCanvas = () => {
+};
+
+exportButton.addEventListener("click", downloadCanvas);
+saveButton.addEventListener("click", saveCanvas);
+loadButton.addEventListener("click", loadCanvas);

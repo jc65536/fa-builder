@@ -1,5 +1,6 @@
+@import url("automaton.css");
+
 :root {
-    --fa-stroke: #000000;
     --fa-sel-stroke: #00ff00;
     --sel-fill: #0000ff10;
     --sel-stroke: #0000ff;
@@ -12,10 +13,11 @@
     display: grid;
     width: 100%;
     grid-template-columns: 1fr max(16rem, min(25%, 24rem));
-    grid-template-rows: max-content 1fr max-content;
+    grid-template-rows: max-content 1fr;
     grid-template-areas:
         "canvas   drag-items "
         "canvas   config-menu"
+        "canvas   global-menu"
         "analysis analysis   ";
     gap: 1rem 1rem;
 }
@@ -29,21 +31,7 @@
 
 .state {
     cursor: move;
-    stroke-width: 2;
-    stroke: var(--fa-stroke);
-    fill: none;
     pointer-events: visibleFill;
-}
-
-.edge {
-    stroke-width: 2;
-    stroke: var(--fa-stroke);
-    fill: none;
-    marker-end: url(#arrow);
-}
-
-#arrow {
-    fill: context-stroke;
 }
 
 .selected {
@@ -94,25 +82,20 @@
     cursor: crosshair;
 }
 
-.trans-char-container, .state-name {
-    text-anchor: middle;
-    font: 1.25rem sans-serif;
-    user-select: none;
-    fill: var(--fa-stroke);
-    user-select: none;
-}
-
-.state-name {
-    stroke: none;
-    dominant-baseline: central;
-}
-
 #config-menu-container:not(.none) > #config-menu-hint,
 #config-menu-container.none > #common-menu,
 #config-menu-container:not(.trans) > #trans-config,
 #config-menu-container:not(.state) > #state-config,
 #config-menu-container:not(.mult) > #mult-warning {
     display: none;
+}
+
+#global-menu-container {
+    grid-area: global-menu;
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    flex-wrap: wrap;
 }
 
 #analysis-container {

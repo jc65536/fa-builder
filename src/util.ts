@@ -172,8 +172,6 @@ export const bezierIntersectsRect = ([x1, y1]: Vec, [x2, y2]: Vec,
         .concat(solvePolynomial(ay, by, cy, dy - b))
         .sort(numOrd);
 
-    console.log(bezierCoef(x1, x2, x3, x4), bezierCoef(y1, y2, y3, y4));
-
     return intsOverlap(trimInts(xints), trimInts(yints));
 };
 
