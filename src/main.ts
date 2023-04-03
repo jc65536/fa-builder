@@ -14,7 +14,7 @@ import {
 } from "./path-controls.js";
 import { cancelSelection, selectedStates } from "./selection.js";
 import { analyze } from "./analysis.js";
-import { root } from "./env";
+import { root } from "./env.js";
 
 // Important DOM elements
 
