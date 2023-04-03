@@ -1,3 +1,4 @@
 node_modules
 built
 dist
+src/env.ts
