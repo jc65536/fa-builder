@@ -1,18 +1,15 @@
 import { stateConfig } from "./config.js";
 import {
-    addState, Edge,
-    State, states, edges, addEdge, canvas, stateLayer, edgeLayer, topLayer
+    addState, Edge, State, states, edges, addEdge, canvas, stateLayer,
+    edgeLayer, topLayer
 } from "./main.js";
+import { BezierControls } from "./path-controls.js";
 import {
-    BezierControls, LineControls, ShortestLineControls, StartingEdgeControls
-} from "./path-controls.js";
-import {
-    deselectEdge, deselectState, selectEdge,
-    selectState, finishSelection
+    deselectEdge, deselectState, selectEdge, selectState, finishSelection
 } from "./selection.js";
 import {
     ifelse, setAttributes, screenToSvgCoords, lineIntersectsRect,
-    bezierIntersectsRect, setLineCmd, createSvgElement
+    bezierIntersectsRect, setLineCmd, createSvgElement, inRange
 } from "./util.js";
 import * as vec from "./vector.js";
 import { Vec } from "./vector.js";
@@ -143,8 +140,6 @@ export class DragEdgeCtx extends DragCtx {
     }
 }
 
-export const inRange = (a: number, x: number, b: number) => a <= x && x <= b;
-
 export class DragSelectionCtx extends DragCtx {
     init: Vec;
     rect: SVGRectElement;
@@ -167,16 +162,14 @@ export class DragSelectionCtx extends DragCtx {
 
         edges.forEach(edge => {
             const controls = edge.controls;
-            if (controls instanceof LineControls
-                || controls instanceof ShortestLineControls
-                || controls instanceof StartingEdgeControls) {
-                const absCp = controls.calcAbsCtrlPts();
-                ifelse(lineIntersectsRect(absCp.start, absCp.end, topLeft, botRight))
-                    (selectEdge)(deselectEdge)(edge);
-            } else if (controls instanceof BezierControls) {
+            if (controls instanceof BezierControls) {
                 const absCp = controls.calcAbsCtrlPts();
                 ifelse(bezierIntersectsRect(absCp.start, absCp.startCtrl,
                     absCp.endCtrl, absCp.end, topLeft, botRight))
+                    (selectEdge)(deselectEdge)(edge);
+            } else {
+                const absCp = controls.calcAbsCtrlPts();
+                ifelse(lineIntersectsRect(absCp.start, absCp.end, topLeft, botRight))
                     (selectEdge)(deselectEdge)(edge);
             }
         });

@@ -33,6 +33,8 @@ export const setBezierCmd = (path: SVGPathElement, cp: BezierCtrlPts) =>
                               ${cp.endCtrl.join(",")}
                               ${cp.end.join(",")}`);
 
+export const inRange = (a: number, x: number, b: number) => a <= x && x <= b;
+
 export const lineIntersectsRect = ([x1, y1]: Vec, [x2, y2]: Vec,
     [l, t]: Vec, [r, b]: Vec) => {
     // Idea: check whether there exists s in [0, 1] such that
@@ -96,7 +98,7 @@ const solveQuadratic = (a: number, b: number, c: number) => {
     } else if (disc === 0) {
         // Double root not actually needed for bezierIntersectsRect
         // const doubleRoot = -b / (2 * a);
-        return [ /* doubleRoot, doubleRoot */];
+        return [/* doubleRoot, doubleRoot */];
     } else {
         return [-1, 1].map(x => (-b + x * Math.sqrt(disc)) / (2 * a));
     }
@@ -169,7 +171,7 @@ export const bezierIntersectsRect = ([x1, y1]: Vec, [x2, y2]: Vec,
     const yints = solvePolynomial(ay, by, cy, dy - t)
         .concat(solvePolynomial(ay, by, cy, dy - b))
         .sort(numOrd);
-    
+
     console.log(bezierCoef(x1, x2, x3, x4), bezierCoef(y1, y2, y3, y4));
 
     return intsOverlap(trimInts(xints), trimInts(yints));
