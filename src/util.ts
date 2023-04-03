@@ -1,4 +1,5 @@
 import * as cmpx from "./complex.js";
+import { epsilon } from "./config.js";
 import { canvas } from "./main.js";
 import { BezierCtrlPts, LineCtrlPts } from "./path-controls.js";
 import { Vec } from "./vector.js";
@@ -83,7 +84,7 @@ const solveCubic = (a: number, b: number, c: number, d: number) => {
 
     return C.map(z => cmpx.scale(-1 / (3 * a))
         (cmpx.add(cmpx.from(b), z, cmpx.scale(delta0)(cmpx.inv(z)))))
-        .filter(z => Math.abs(Math.sin(z.a)) < 1e-9)
+        .filter(z => Math.abs(Math.sin(z.a)) < epsilon)
         .map(z => Math.sign(Math.cos(z.a)) * z.r);
 };
 
@@ -102,8 +103,8 @@ const solveQuadratic = (a: number, b: number, c: number) => {
 };
 
 const solvePolynomial = (a: number, b: number, c: number, d: number) => {
-    if (a === 0) {
-        if (b === 0)
+    if (Math.abs(a) < epsilon) {
+        if (Math.abs(b) < epsilon)
             return [-d / c];
         else
             return solveQuadratic(b, c, d);
@@ -168,6 +169,8 @@ export const bezierIntersectsRect = ([x1, y1]: Vec, [x2, y2]: Vec,
     const yints = solvePolynomial(ay, by, cy, dy - t)
         .concat(solvePolynomial(ay, by, cy, dy - b))
         .sort(numOrd);
+    
+    console.log(bezierCoef(x1, x2, x3, x4), bezierCoef(y1, y2, y3, y4));
 
     return intsOverlap(trimInts(xints), trimInts(yints));
 };

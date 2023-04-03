@@ -159,20 +159,24 @@ export class DragSelectionCtx extends DragCtx {
         const mousePos = screenToSvgCoords([evt.x, evt.y]);
         const topLeft = this.init.map((x, i) => Math.min(x, mousePos[i])) as Vec;
         const dim = this.init.map((x, i) => Math.max(x, mousePos[i]) - topLeft[i]) as Vec;
+
         setAttributes(this.rect, ["x", "y", "width", "height"],
             topLeft.concat(dim).map(x => x.toString()));
 
         const botRight = vec.add(topLeft)(dim);
+
         edges.forEach(edge => {
             const controls = edge.controls;
-            if (controls instanceof LineControls || controls instanceof ShortestLineControls || controls instanceof StartingEdgeControls) {
-                const cpAbs = controls.calcAbsCtrlPts();
-                ifelse(lineIntersectsRect(cpAbs.start, cpAbs.end, topLeft, botRight))
+            if (controls instanceof LineControls
+                || controls instanceof ShortestLineControls
+                || controls instanceof StartingEdgeControls) {
+                const absCp = controls.calcAbsCtrlPts();
+                ifelse(lineIntersectsRect(absCp.start, absCp.end, topLeft, botRight))
                     (selectEdge)(deselectEdge)(edge);
             } else if (controls instanceof BezierControls) {
-                const cpAbs = controls.calcAbsCtrlPts();
-                ifelse(bezierIntersectsRect(cpAbs.start, cpAbs.startCtrl,
-                    cpAbs.endCtrl, cpAbs.end, topLeft, botRight))
+                const absCp = controls.calcAbsCtrlPts();
+                ifelse(bezierIntersectsRect(absCp.start, absCp.startCtrl,
+                    absCp.endCtrl, absCp.end, topLeft, botRight))
                     (selectEdge)(deselectEdge)(edge);
             }
         });

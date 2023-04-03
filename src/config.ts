@@ -3,6 +3,8 @@ export const stateConfig = {
     innerRadius: 24
 };
 
+export const epsilon = 1e-9;
+
 export const epsilonChar = "\u03b5";
 
 export const ctrlHandleConfig = {
