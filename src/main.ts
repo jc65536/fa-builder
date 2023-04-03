@@ -14,7 +14,6 @@ import {
 } from "./path-controls.js";
 import { cancelSelection, selectedStates } from "./selection.js";
 import { analyze } from "./analysis.js";
-import { root } from "./env.js";
 
 // Important DOM elements
 
@@ -303,7 +302,7 @@ const serializer = new XMLSerializer();
 
 const downloadCanvas = async () => {
     const style = createSvgElement("style");
-    style.textContent = await (await fetch(`${root}/automaton.css`)).text();
+    style.textContent = await (await fetch("/automaton.css")).text();
     canvas.prepend(style);
 
     const serialized = serializer.serializeToString(canvas);
