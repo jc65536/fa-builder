@@ -81,9 +81,64 @@
     <div id="analysis-container">
       <h2>Analysis</h2>
       <p id="analysis-error"></p>
-      <p>Equivalent regex: <span id="regex-output"></span></p>
+      <p>Equivalent regex: <code id="regex-output"></code></p>
     </div>
   </div>
+
+  <h2>Help</h2>
+  <h3>States</h3>
+  <p>
+    Drag the circle labeled "Drag me!" onto the rectangular canvas to add a
+    state. You can move states around by dragging them. Select a state to
+    change its name, accepting status, or starting state status. You can also
+    double-click on a state to toggle its accepting status.
+  </p>
+  <h3>Transitions</h3>
+  <p>
+    Start dragging from any state on the canvas with your secondary mouse
+    button and an arrow will appear. Drop the arrow onto any state to create a
+    transition (if you drop it on the same state, this creates a self loop).
+    Select an edge to change its arrow type and transition character. As of
+    now, epsilon transitions are not supported.
+  </p>
+  <h3>Selecting elements</h3>
+  <p>
+    Start dragging on an empty part of the canvas (i.e. not on a state) to
+    start a selection. As you drag, any elements that come in contact with the
+    selection rectangle will be highlighted. Drop to end the selection, and the
+    menu on the right will display further actions on the selected elements.
+  </p>
+  <h3>Analysis</h3>
+  <p>
+    The analysis panel on the bottom displays information about your DFA as you
+    edit. More features coming soon!
+  </p>
+  <h4>Equivalent regex</h4>
+  <p>
+    This field displays a regular expression that is equivalent to your DFA.
+    The syntax is as follows:
+  </p>
+  <dl id="help-regex">
+    <dt><code>abc</code></dt>
+    <dd>Character sequences match themselves.</dd>
+    <dt><code>(abc)</code></dt>
+    <dd>Parentheses create groups and are used to clarify precedence.</dd>
+    <dt><code>ab*c</code></dt>
+    <dd>
+      A character/group followed by an asterisk matches any number
+      (including none) of that character/group. This example would match
+      <code>ac</code>, <code>abc</code>, or <code>abbbc</code>.
+    </dd>
+    <dt><code>abc|def</code></dt>
+    <dd>
+      Sequences/groups separated by pipes match either sequence/group.
+    </dd>
+    <dt><code>[abc]</code></dt>
+    <dd>
+      Square brackets create optional groups. This example is equivalent to
+      <code>(ε|abc)</code> where <code>ε</code> is the empty string.
+    </dd>
+  </dl>
 </body>
 
 </html>
