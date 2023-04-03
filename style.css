@@ -1,9 +1,9 @@
 :root {
-    --fa-stroke: #151515;
-    --fa-sel-stroke: #21ff57;
-    --sel-fill: #317fff10;
-    --sel-stroke: #317fff;
-    --handle-fill: #cd34ff;
+    --fa-stroke: #000000;
+    --fa-sel-stroke: #00ff00;
+    --sel-fill: #0000ff10;
+    --sel-stroke: #0000ff;
+    --handle-fill: #ff00ff;
 }
 
 /* App layout */
