@@ -301,6 +301,8 @@ document.addEventListener("keydown", dispatchShortcut);
 const serializer = new XMLSerializer();
 
 const downloadCanvas = async () => {
+    cancelSelection();
+
     const style = createSvgElement("style");
     style.textContent = await (await fetch("/automaton.css")).text();
     canvas.prepend(style);
