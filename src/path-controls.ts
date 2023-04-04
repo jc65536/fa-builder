@@ -95,6 +95,9 @@ export class BezierControls extends PathControls {
     handles: { [key in keyof BezierCtrlPts]: ControlHandle };
 
     constructor(edge: Edge, shifted: boolean) {
+        const updateHandle = (name: keyof BezierCtrlPts) =>
+            (this.handles[name].updatePos(this.cp[name]), updateHandle);
+
         const startHandles = {
             start: new ControlHandle(mousePos => {
                 const newStart = vec.polar(stateConfig.radius,
@@ -104,13 +107,12 @@ export class BezierControls extends PathControls {
                     (vec.sub(newStart)(this.cp.start));
                 this.cp.start = newStart;
 
-                this.handles.start.updatePos(this.cp.start);
-                this.handles.startCtrl.updatePos(this.cp.startCtrl);
+                updateHandle("start")("startCtrl");
                 this.updatePath();
             }),
             startCtrl: new ControlHandle(mousePos => {
                 this.cp.startCtrl = vec.sub(mousePos)(this.startStatePos);
-                this.handles.startCtrl.updatePos(this.cp.startCtrl);
+                updateHandle("startCtrl");
                 this.updatePath();
             })
         };
@@ -118,7 +120,7 @@ export class BezierControls extends PathControls {
         const endHandles = {
             endCtrl: new ControlHandle(mousePos => {
                 this.cp.endCtrl = vec.sub(mousePos)(this.endStatePos);
-                this.handles.endCtrl.updatePos(this.cp.endCtrl);
+                updateHandle("endCtrl");
                 this.updatePath();
             }),
             end: new ControlHandle(mousePos => {
@@ -129,8 +131,7 @@ export class BezierControls extends PathControls {
                     (vec.sub(newEnd)(this.cp.end));
                 this.cp.end = newEnd;
 
-                this.handles.endCtrl.updatePos(this.cp.endCtrl);
-                this.handles.end.updatePos(this.cp.end);
+                updateHandle("endCtrl")("end");
                 this.updatePath();
             })
         };
@@ -181,10 +182,7 @@ export class BezierControls extends PathControls {
             }
         }
 
-        this.handles.start.updatePos(this.cp.start);
-        this.handles.startCtrl.updatePos(this.cp.startCtrl);
-        this.handles.endCtrl.updatePos(this.cp.endCtrl);
-        this.handles.end.updatePos(this.cp.end);
+        updateHandle("start")("startCtrl")("endCtrl")("end");
         this.updatePath();
     }
 
@@ -218,10 +216,13 @@ export class LineControls extends PathControls {
 
 
     constructor(edge: Edge) {
+        const updateHandle = (name: keyof LineCtrlPts) =>
+            (this.handles[name].updatePos(this.cp[name]), updateHandle);
+
         const startHandle = new ControlHandle(mousePos => {
             this.cp.start = vec.polar(stateConfig.radius,
                 vec.atanScreenVec(vec.sub(mousePos)(this.startStatePos)))
-            this.handles.start.updatePos(this.cp.start);
+            updateHandle("start");
             this.updatePath();
         });
 
@@ -229,6 +230,7 @@ export class LineControls extends PathControls {
             this.cp.end = vec.polar(stateConfig.radius,
                 vec.atanScreenVec(vec.sub(mousePos)(this.endStatePos)));
             this.handles.end.updatePos(this.cp.end);
+            updateHandle("end");
             this.updatePath();
         });
 
@@ -238,8 +240,7 @@ export class LineControls extends PathControls {
 
         this.cp = edge.controls.cp;
 
-        this.handles.start.updatePos(this.cp.start);
-        this.handles.end.updatePos(this.cp.end);
+        updateHandle("start")("end");
         this.updatePath();
     }
 
