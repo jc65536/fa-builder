@@ -128,7 +128,7 @@ export class DragEdgeCtx extends DragCtx {
         const radius = vec.polar(stateConfig.radius, angle);
         const start = vec.add(this.edge.startState.pos)(radius);
         const end = endState === undefined ? mousePos : vec.sub(endState.pos)(radius);
-        setLineCmd(this.edge.pathElem, { start, end });
+        setLineCmd(this.edge.pathElem, { start, end }, false);
     }
 
     handleDrop(evt: MouseEvent): void {

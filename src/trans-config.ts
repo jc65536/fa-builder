@@ -12,7 +12,8 @@ export const inputs = {
     epsilonTrans: form.querySelector<HTMLInputElement>("#epsilon-trans"),
     lineChoice: form.querySelector<HTMLInputElement>("#line-choice"),
     bezierChoice: form.querySelector<HTMLInputElement>("#bezier-choice"),
-    shortestLine: form.querySelector<HTMLInputElement>("#shortest-line")
+    shortestLine: form.querySelector<HTMLInputElement>("#shortest-line"),
+    reverseEdge: form.querySelector<HTMLButtonElement>("#reverse-edge")
 }
 
 let selectedEdge: Edge = null;
@@ -107,10 +108,16 @@ const selectBezierChoice = checkNull((evt: Event) => {
     selectedEdge.controls.show();
 });
 
+const clickReverseEdge = checkNull((evt: Event) => {
+    selectedEdge.controls.toggleReversed();
+    selectedEdge.controls.updatePath();
+});
+
 inputs.transChar.addEventListener("input", inputTransChar);
 inputs.epsilonTrans.addEventListener("change", changeEpsilonTrans);
 inputs.shortestLine.addEventListener("change", changeShortestLine);
 inputs.bezierChoice.addEventListener("change", selectBezierChoice);
 inputs.lineChoice.addEventListener("change", selectLineChoice);
+inputs.reverseEdge.addEventListener("click", clickReverseEdge);
 
 form.addEventListener("submit", e => e.preventDefault());

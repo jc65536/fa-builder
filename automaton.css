@@ -15,6 +15,11 @@
     marker-end: url(#arrow);
 }
 
+.edge.reversed {
+    marker-end: none;
+    marker-start: url(#arrow);
+}
+
 #arrow {
     fill: context-stroke;
 }

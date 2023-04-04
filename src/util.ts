@@ -24,14 +24,29 @@ export const side = (a1: number) => (a2: number) =>
 
 export const numOrd = (x: number, y: number) => x - y;
 
-export const setLineCmd = (path: SVGPathElement, cp: LineCtrlPts) =>
-    path.setAttribute("d", `M ${cp.start.join(",")} L ${cp.end.join(",")}`);
+export const setLineCmd = (path: SVGPathElement, cp: LineCtrlPts,
+    reversed: boolean) => {
+    if (reversed)
+        path.setAttribute("d", `M ${cp.end.join(",")}
+                                L ${cp.start.join(",")}`);
+    else
+        path.setAttribute("d", `M ${cp.start.join(",")}
+                                L ${cp.end.join(",")}`);
+}
 
-export const setBezierCmd = (path: SVGPathElement, cp: BezierCtrlPts) =>
-    path.setAttribute("d", `M ${cp.start.join(",")}
-                            C ${cp.startCtrl.join(",")}
-                              ${cp.endCtrl.join(",")}
-                              ${cp.end.join(",")}`);
+export const setBezierCmd = (path: SVGPathElement, cp: BezierCtrlPts,
+    reversed: boolean) => {
+    if (reversed)
+        path.setAttribute("d", `M ${cp.end.join(",")}
+                                C ${cp.endCtrl.join(",")}
+                                  ${cp.startCtrl.join(",")}
+                                  ${cp.start.join(",")}`);
+    else
+        path.setAttribute("d", `M ${cp.start.join(",")}
+                                C ${cp.startCtrl.join(",")}
+                                  ${cp.endCtrl.join(",")}
+                                  ${cp.end.join(",")}`);
+};
 
 export const inRange = (a: number, x: number, b: number) => a <= x && x <= b;
 

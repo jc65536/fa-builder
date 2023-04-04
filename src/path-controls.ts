@@ -44,6 +44,8 @@ export abstract class PathControls {
     startStatePos: Vec;
     endStatePos: Vec;
 
+    reversed: boolean;
+
     constructor(edge: Edge, startHandles: ControlHandle[],
         endHandles: ControlHandle[]) {
         this.path = edge.pathElem;
@@ -52,6 +54,8 @@ export abstract class PathControls {
 
         this.startStatePos = startState?.pos;
         this.endStatePos = endState.pos;
+
+        this.reversed = edge.controls?.reversed ?? false;
 
         const initTransform = (state: State) => (handle: ControlHandle) => {
             handle.circle.transform.baseVal
@@ -69,6 +73,7 @@ export abstract class PathControls {
     abstract updateStart(pos: Vec): void;
     abstract updateEnd(pos: Vec): void;
     abstract calcAbsCtrlPts(): CtrlPts;
+    abstract updatePath(): void;
 
     show() {
         Object.values(this.handles)
@@ -77,6 +82,11 @@ export abstract class PathControls {
 
     hide() {
         Object.values(this.handles).forEach(h => h.circle.remove());
+    }
+
+    toggleReversed() {
+        this.path.classList.toggle("reversed");
+        this.reversed = !this.reversed;
     }
 }
 
@@ -142,6 +152,8 @@ export class BezierControls extends PathControls {
                 endCtrl: ctrlFrom(end),
                 end: end
             };
+
+            this.toggleReversed();
         } else {
             const oldCp = edge.controls.cp;
             const oldAbsCp = edge.controls.calcAbsCtrlPts();
@@ -187,7 +199,7 @@ export class BezierControls extends PathControls {
     }
 
     updatePath() {
-        setBezierCmd(this.path, this.calcAbsCtrlPts());
+        setBezierCmd(this.path, this.calcAbsCtrlPts(), this.reversed);
     }
 
     calcAbsCtrlPts(): BezierCtrlPts {
@@ -242,7 +254,7 @@ export class LineControls extends PathControls {
     }
 
     updatePath() {
-        setLineCmd(this.path, this.calcAbsCtrlPts());
+        setLineCmd(this.path, this.calcAbsCtrlPts(), this.reversed);
     }
 
     calcAbsCtrlPts(): LineCtrlPts {
@@ -278,7 +290,7 @@ export class ShortestLineControls extends PathControls {
             vec.atanScreenVec(vec.sub(this.endStatePos)(this.startStatePos)));
         this.cp.end = vec.scale(-1)(this.cp.start);
 
-        setLineCmd(this.path, this.calcAbsCtrlPts());
+        setLineCmd(this.path, this.calcAbsCtrlPts(), this.reversed);
     }
 
     calcAbsCtrlPts(): LineCtrlPts {
@@ -323,7 +335,7 @@ export class StartingEdgeControls extends PathControls {
 
     updatePath() {
         this.handles.end.updatePos(this.cp.end);
-        setLineCmd(this.path, this.calcAbsCtrlPts());
+        setLineCmd(this.path, this.calcAbsCtrlPts(), this.reversed);
     }
 
     calcAbsCtrlPts(): LineCtrlPts {
