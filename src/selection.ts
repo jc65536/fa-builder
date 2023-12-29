@@ -53,11 +53,11 @@ export const finishSelection = () => {
                 return "other";
 
             transConfig.initForm(edge);
-            return "trans";
+            return "trans-conf";
         } else {
             const [state] = selectedStates;
             stateConfig.initForm(state);
-            return "state";
+            return "state-conf";
         }
     })();
 

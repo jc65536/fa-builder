@@ -84,8 +84,8 @@
 
 #config-menu-container:not(.none) > #config-menu-hint,
 #config-menu-container.none > #common-menu,
-#config-menu-container:not(.trans) > #trans-config,
-#config-menu-container:not(.state) > #state-config,
+#config-menu-container:not(.trans-conf) > #trans-config,
+#config-menu-container:not(.state-conf) > #state-config,
 #config-menu-container:not(.mult) > #mult-warning {
     display: none;
 }
